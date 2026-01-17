@@ -1,0 +1,55 @@
+// Add features and stats forms after testimonials 
+// Search for where to inject these - after case 'testimonials' or before default case
+// Let me create placeholder forms that can be added
+
+// For Features Widget:
+/*
+if (widgetType === 'features') return (
+    <>
+        <Input label="Section Title (optional)" value={config.title || ''} onChange={v => updateConfig('title', v)} />
+        
+        <Select 
+            label="Layout" 
+            value={config.layout || 'grid'} 
+            onChange={v => updateConfig('layout', v)} 
+            options={[
+                { value: 'grid', label: '📊 Grid' },
+                { value: 'carousel', label: '🎠 Carousel' },
+                { value: 'masonry', label: '🧱 Masonry' },
+                { value: 'timeline', label: '⏳ Timeline' }
+            ]} 
+        />
+        
+        <FeaturesArrayEditor
+            value={config.features || []}
+            onChange={v => updateConfig('features', v)}
+        />
+    </>
+);
+
+// For Stats Widget:
+if (widgetType === 'stats') return (
+    <>
+        <Select 
+            label="Layout" 
+            value={config.layout || 'horizontal'} 
+            onChange={v => updateConfig('layout', v)} 
+            options={[
+                { value: 'horizontal', label: 'Horizontal' },
+                { value: 'vertical', label: 'Vertical' }
+            ]} 
+        />
+        
+        <StatsArrayEditor
+            value={config.stats || []}
+            onChange={v => updateConfig('stats', v)}
+        />
+        
+        <ColorPicker
+            label="Text Color"
+            value={config.textColor || '#ffffff'}
+            onChange={v => updateConfig('textColor', v)}
+        />
+    </>
+);
+*/
