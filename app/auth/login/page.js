@@ -39,10 +39,11 @@ export default function LoginPage() {
                 password: formData.password
             });
 
-            // Backend returns: { success, message, token, user, permissions, ... }
+            // Backend returns: { success, message, token, user, permissions, refreshToken... }
             const token = res.data.token || res.data.accessToken;
             const user = res.data.user;
             const permissions = res.data.permissions;
+            const refreshToken = res.data.refreshToken;
 
             if (!token || !user) {
                 throw new Error("Invalid response from server");
@@ -54,7 +55,7 @@ export default function LoginPage() {
             }
 
             localStorage.removeItem('temp_tenant_id'); // Cleanup
-            login(token, user, permissions);
+            login(token, user, permissions, refreshToken);
         } catch (err) {
             console.error("Login error:", err);
             setError(err.response?.data?.message || err.message || "Login failed");

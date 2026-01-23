@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { Plus, Edit2, Trash2, Folder, Layers, Settings, X, Search } from "lucide-react";
+import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState([]);
@@ -10,7 +11,7 @@ export default function CategoriesPage() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
-    const [activeTab, setActiveTab] = useState('general'); // 'general' | 'attributes'
+    const [activeTab, setActiveTab] = useState('general'); // 'general' | 'attributes' | 'seo'
 
     // Form State
     const [formData, setFormData] = useState({
@@ -18,7 +19,20 @@ export default function CategoriesPage() {
         slug: '',
         parent_id: '', // Nullable in DB but empty string for select
         description: '',
-        image_url: ''
+        image_url: '',
+        // SEO Fields
+        meta_description: '',
+        og_title: '',
+        og_description: '',
+        og_image: '',
+        og_type: 'product.group', // Default for categories
+        twitter_card: 'summary_large_image',
+        twitter_title: '',
+        twitter_description: '',
+        twitter_image: '',
+        canonical_url: '',
+        robots: 'index,follow',
+        structured_data: null
     });
 
     const [linkedAttributes, setLinkedAttributes] = useState([]); // [{id, is_required}]
@@ -47,7 +61,26 @@ export default function CategoriesPage() {
 
     const handleCreate = () => {
         setEditingCategory(null);
-        setFormData({ name: '', slug: '', parent_id: '', description: '', image_url: '' });
+        setFormData({
+            name: '',
+            slug: '',
+            parent_id: '',
+            description: '',
+            image_url: '',
+            // SEO Defaults
+            meta_description: '',
+            og_title: '',
+            og_description: '',
+            og_image: '',
+            og_type: 'product.group',
+            twitter_card: 'summary_large_image',
+            twitter_title: '',
+            twitter_description: '',
+            twitter_image: '',
+            canonical_url: '',
+            robots: 'index,follow',
+            structured_data: null
+        });
         setLinkedAttributes([]);
         setInitialLinkedAttributes([]);
         setActiveTab('general');
@@ -61,7 +94,20 @@ export default function CategoriesPage() {
             slug: category.slug,
             parent_id: category.parent_id || '',
             description: category.description || '',
-            image_url: category.image_url || ''
+            image_url: category.image_url || '',
+            // SEO Fields
+            meta_description: category.meta_description || '',
+            og_title: category.og_title || '',
+            og_description: category.og_description || '',
+            og_image: category.og_image || '',
+            og_type: category.og_type || 'product.group',
+            twitter_card: category.twitter_card || 'summary_large_image',
+            twitter_title: category.twitter_title || '',
+            twitter_description: category.twitter_description || '',
+            twitter_image: category.twitter_image || '',
+            canonical_url: category.canonical_url || '',
+            robots: category.robots || 'index,follow',
+            structured_data: category.structured_data || null
         });
         setActiveTab('general');
         setIsModalOpen(true);
@@ -73,6 +119,7 @@ export default function CategoriesPage() {
                 const attrs = res.data.category.attributes.map(a => ({
                     attribute_id: a.id,
                     is_required: a.is_required,
+                    is_ignored: a.is_ignored,
                     is_inherited: a.is_inherited,
                     source_category_name: a.source_category_name
                 }));
@@ -120,11 +167,12 @@ export default function CategoriesPage() {
             }
 
             // 2. Upsert (Link/Update) Current
-            // We loop through ALL current attributes to ensure is_required is updated if changed
+            // We loop through ALL current attributes to ensure is_required/is_ignored is updated if changed
             for (const attr of linkedAttributes) {
                 await api.post(`/products/categories/${categoryId}/attributes`, {
                     attribute_id: attr.attribute_id,
-                    is_required: attr.is_required
+                    is_required: attr.is_required,
+                    is_ignored: attr.is_ignored
                 });
             }
 
@@ -148,8 +196,17 @@ export default function CategoriesPage() {
     };
 
     const handleLinkAttribute = (attrId) => {
-        if (linkedAttributes.find(a => a.attribute_id === attrId)) return;
-        setLinkedAttributes([...linkedAttributes, { attribute_id: attrId, is_required: false }]);
+        const existing = linkedAttributes.find(a => a.attribute_id === attrId);
+        if (existing) {
+            if (existing.is_ignored) {
+                // Restore rejected inherited attribute
+                setLinkedAttributes(linkedAttributes.map(a =>
+                    a.attribute_id === attrId ? { ...a, is_ignored: false } : a
+                ));
+            }
+            return;
+        }
+        setLinkedAttributes([...linkedAttributes, { attribute_id: attrId, is_required: false, is_ignored: false }]);
     };
 
     const handleUnlinkAttribute = (index, attrId) => {
@@ -161,6 +218,12 @@ export default function CategoriesPage() {
     const toggleRequired = (index, attrId) => {
         const newAttrs = [...linkedAttributes];
         newAttrs[index].is_required = !newAttrs[index].is_required;
+        setLinkedAttributes(newAttrs);
+    };
+
+    const toggleIgnored = (index, attrId) => {
+        const newAttrs = [...linkedAttributes];
+        newAttrs[index].is_ignored = !newAttrs[index].is_ignored;
         setLinkedAttributes(newAttrs);
     };
 
@@ -250,6 +313,12 @@ export default function CategoriesPage() {
                             >
                                 Attributes
                             </button>
+                            <button
+                                onClick={() => setActiveTab('seo')}
+                                className={`flex-1 py-3 text-sm font-medium border-b-2 ${activeTab === 'seo' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                            >
+                                SEO
+                            </button>
                         </div>
 
                         {/* Content */}
@@ -318,7 +387,7 @@ export default function CategoriesPage() {
                                         />
                                     </div>
                                 </div>
-                            ) : (
+                            ) : activeTab === 'attributes' ? (
                                 <div className="space-y-6">
                                     <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
                                         Products in this category will have these attributes.
@@ -326,11 +395,12 @@ export default function CategoriesPage() {
 
                                     <div>
                                         <h4 className="font-semibold mb-2">Linked Attributes</h4>
-                                        {linkedAttributes.length === 0 ? (
+                                        {linkedAttributes.filter(a => !a.is_ignored).length === 0 ? (
                                             <p className="text-gray-500 text-sm italic">No attributes linked yet.</p>
                                         ) : (
                                             <div className="space-y-2">
                                                 {linkedAttributes.map((link, idx) => {
+                                                    if (link.is_ignored) return null;
                                                     const attrDef = attributes.find(a => a.id === link.attribute_id);
                                                     if (!attrDef) return null;
                                                     return (
@@ -356,7 +426,16 @@ export default function CategoriesPage() {
                                                                     />
                                                                     Required
                                                                 </label>
-                                                                {!link.is_inherited && (
+                                                                {link.is_inherited ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleIgnored(idx, link.attribute_id)}
+                                                                        className="text-orange-500 hover:text-orange-700 text-xs font-bold flex items-center gap-1"
+                                                                        title="Reject inheritance"
+                                                                    >
+                                                                        <X className="w-4 h-4" /> Reject
+                                                                    </button>
+                                                                ) : (
                                                                     <button type="button" onClick={() => handleUnlinkAttribute(idx, link.attribute_id)} className="text-red-500 hover:text-red-700">
                                                                         <X className="w-4 h-4" />
                                                                     </button>
@@ -376,6 +455,23 @@ export default function CategoriesPage() {
                                             <input type="text" placeholder="Search attributes..." className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm mb-2" />
                                         </div>
                                         <div className="max-h-40 overflow-y-auto space-y-1">
+                                            {/* Rejected Inherited first */}
+                                            {linkedAttributes.map((link, idx) => {
+                                                if (!link.is_ignored) return null;
+                                                const attrDef = attributes.find(a => a.id === link.attribute_id);
+                                                if (!attrDef) return null;
+                                                return (
+                                                    <div key={link.attribute_id} className="flex justify-between items-center p-2 bg-orange-50 hover:bg-orange-100 rounded cursor-pointer group border border-orange-100" onClick={() => handleLinkAttribute(link.attribute_id)}>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-bold text-orange-800">{attrDef.label}</span>
+                                                            <span className="text-[10px] text-orange-600">Inherited (Rejected)</span>
+                                                        </div>
+                                                        <Plus className="w-4 h-4 text-orange-400 group-hover:text-orange-600" />
+                                                    </div>
+                                                );
+                                            })}
+
+                                            {/* Completely Unlinked */}
                                             {attributes
                                                 .filter(a => !linkedAttributes.find(l => l.attribute_id === a.id))
                                                 .map(attr => (
@@ -387,6 +483,17 @@ export default function CategoriesPage() {
                                         </div>
                                     </div>
                                 </div>
+                            ) : (
+                                <div className="space-y-4 pt-4">
+                                    <h4 className="text-md font-semibold text-gray-800">Search Engine Optimization</h4>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        Set default SEO settings for products in this category. Inherited values can be overridden on individual products.
+                                    </p>
+                                    <SEOMetaEditor
+                                        page={formData}
+                                        onChange={(updated) => setFormData(updated)}
+                                    />
+                                </div>
                             )}
 
                             <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
@@ -395,10 +502,11 @@ export default function CategoriesPage() {
                                     {editingCategory ? 'Save Changes' : 'Create Category'}
                                 </button>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </div>
+                        </form >
+                    </div >
+                </div >
+            )
+            }
+        </div >
     );
 }

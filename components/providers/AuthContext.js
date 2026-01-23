@@ -32,10 +32,13 @@ export function AuthProvider({ children }) {
         }
     }, []);
 
-    const login = (token, userData, userPerms = []) => {
+    const login = (token, userData, userPerms = [], refreshToken = null) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('permissions', JSON.stringify(userPerms));
+        if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+        }
         setUser(userData);
         setPermissions(userPerms);
         router.push('/dashboard');
@@ -43,6 +46,7 @@ export function AuthProvider({ children }) {
 
     const logout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         localStorage.removeItem('permissions');
         setUser(null);

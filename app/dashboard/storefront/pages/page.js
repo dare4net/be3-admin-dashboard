@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { Plus, Edit2, Trash2, Eye, EyeOff, FileText, Settings, Layout } from "lucide-react";
 import Link from "next/link";
+import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 
 export default function PagesManagement() {
     const [pages, setPages] = useState([]);
@@ -17,7 +18,19 @@ export default function PagesManagement() {
         is_published: false,
         show_in_nav: false,
         show_header: true,
-        show_footer: true
+        show_footer: true,
+        // SEO Fields
+        og_title: '',
+        og_description: '',
+        og_image: '',
+        og_type: 'website',
+        twitter_card: 'summary_large_image',
+        twitter_title: '',
+        twitter_description: '',
+        twitter_image: '',
+        canonical_url: '',
+        robots: 'index,follow',
+        structured_data: null
     });
 
     useEffect(() => {
@@ -46,7 +59,19 @@ export default function PagesManagement() {
             is_published: false,
             show_in_nav: false,
             show_header: true,
-            show_footer: true
+            show_footer: true,
+            // SEO Fields
+            og_title: '',
+            og_description: '',
+            og_image: '',
+            og_type: 'website',
+            twitter_card: 'summary_large_image',
+            twitter_title: '',
+            twitter_description: '',
+            twitter_image: '',
+            canonical_url: '',
+            robots: 'index,follow',
+            structured_data: null
         });
         setIsModalOpen(true);
     };
@@ -60,7 +85,19 @@ export default function PagesManagement() {
             is_published: page.is_published,
             show_in_nav: page.show_in_nav,
             show_header: page.show_header !== false, // Default to true if undefined
-            show_footer: page.show_footer !== false
+            show_footer: page.show_footer !== false,
+            // SEO Fields
+            og_title: page.og_title || '',
+            og_description: page.og_description || '',
+            og_image: page.og_image || '',
+            og_type: page.og_type || 'website',
+            twitter_card: page.twitter_card || 'summary_large_image',
+            twitter_title: page.twitter_title || '',
+            twitter_description: page.twitter_description || '',
+            twitter_image: page.twitter_image || '',
+            canonical_url: page.canonical_url || '',
+            robots: page.robots || 'index,follow',
+            structured_data: page.structured_data || null
         });
         setIsModalOpen(true);
     };
@@ -223,13 +260,15 @@ export default function PagesManagement() {
 
             {/* Create/Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-2xl w-full p-6">
-                        <h3 className="text-lg font-bold mb-6">
-                            {editingPage ? 'Edit Page' : 'Create New Page'}
-                        </h3>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                    <div className="bg-white rounded-lg max-w-4xl w-full my-8 max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b px-6 py-4 z-10">
+                            <h3 className="text-lg font-bold">
+                                {editingPage ? 'Edit Page' : 'Create New Page'}
+                            </h3>
+                        </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">Page Title *</label>
                                 <input
@@ -314,7 +353,16 @@ export default function PagesManagement() {
                                 </label>
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-4">
+                            {/* SEO Meta Editor */}
+                            <div className="border-t pt-6 mt-6">
+                                <h4 className="text-md font-semibold mb-4 text-gray-800">Search Engine Optimization</h4>
+                                <SEOMetaEditor
+                                    page={formData}
+                                    onChange={(updated) => setFormData(updated)}
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-6 border-t mt-6">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Package, Folder, Tags } from "lucide-react";
+import { Package, Folder, Tags, List } from "lucide-react";
 
 const sections = [
     {
@@ -24,6 +24,13 @@ const sections = [
         href: "/dashboard/products/attributes",
         icon: Tags,
         color: "bg-purple-100 text-purple-600"
+    },
+    {
+        name: "Collections",
+        description: "Create rule-based product groupings",
+        href: "/dashboard/products/collections",
+        icon: List,
+        color: "bg-green-100 text-green-600"
     }
 ];
 

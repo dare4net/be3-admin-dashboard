@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
 import { Star, X, Folder, ChevronRight, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 
 export default function EditProductPage() {
     const router = useRouter();
@@ -29,11 +30,22 @@ export default function EditProductPage() {
         is_featured: false,
         category_ids: [],
         tags: [],
-        seo_title: "",
-        seo_description: "",
         handle: "",
         image_url: "",
-        attributes: {}
+        attributes: {},
+        // SEO Fields
+        meta_description: "",
+        og_title: "",
+        og_description: "",
+        og_image: "",
+        og_type: "product",
+        twitter_card: "summary_large_image",
+        twitter_title: "",
+        twitter_description: "",
+        twitter_image: "",
+        canonical_url: "",
+        robots: "index,follow",
+        structured_data: null
     });
     const [tagInput, setTagInput] = useState("");
     const [availableAttributes, setAvailableAttributes] = useState([]);
@@ -56,7 +68,8 @@ export default function EditProductPage() {
                 const res = await api.get(`/products/categories/${selectedCategory.id}/admin`);
 
                 if (res.data.category && res.data.category.attributes) {
-                    setAvailableAttributes(res.data.category.attributes);
+                    // Only show attributes that are not explicitly ignored for this category
+                    setAvailableAttributes(res.data.category.attributes.filter(a => !a.is_ignored));
                 }
             } catch (error) {
                 console.error("Failed to fetch attributes", error);
@@ -87,11 +100,22 @@ export default function EditProductPage() {
                     is_featured: product.is_featured || false,
                     category_ids: primaryCatId ? [primaryCatId] : [],
                     tags: product.tags || [],
-                    seo_title: product.seo_title || "",
-                    seo_description: product.seo_description || "",
                     handle: product.handle || "",
                     image_url: product.image_url || "",
-                    attributes: product.attributes || {}
+                    attributes: product.attributes || {},
+                    // SEO Fields
+                    meta_description: product.meta_description || "",
+                    og_title: product.og_title || "",
+                    og_description: product.og_description || "",
+                    og_image: product.og_image || "",
+                    og_type: product.og_type || "product",
+                    twitter_card: product.twitter_card || "summary_large_image",
+                    twitter_title: product.twitter_title || "",
+                    twitter_description: product.twitter_description || "",
+                    twitter_image: product.twitter_image || "",
+                    canonical_url: product.canonical_url || "",
+                    robots: product.robots || "index,follow",
+                    structured_data: product.structured_data || null
                 });
 
                 // Set initial selected category object (need to find it in full list once loaded)
@@ -169,7 +193,7 @@ export default function EditProductPage() {
         setFormData(prev => ({
             ...prev,
             name,
-            seo_title: prev.seo_title || name
+            og_title: prev.og_title || name
         }));
     };
 
@@ -181,10 +205,11 @@ export default function EditProductPage() {
     };
 
     const addTag = () => {
-        if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-            setFormData(prev => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
-            setTagInput("");
+        const newTags = tagInput.split(',').map(t => t.trim()).filter(t => t && !formData.tags.includes(t));
+        if (newTags.length > 0) {
+            setFormData(prev => ({ ...prev, tags: [...prev.tags, ...newTags] }));
         }
+        setTagInput("");
     };
     const removeTag = (tag) => setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
     const handleTagKeyDown = (e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); } };
@@ -447,7 +472,7 @@ export default function EditProductPage() {
                     </div>
                 </div>
 
-                {/* SEO */}
+                {/* SEO & URL */}
                 <div className="bg-white rounded-lg shadow p-6 space-y-6">
                     <h2 className="text-xl font-semibold border-b pb-2">SEO & URL</h2>
                     <div>
@@ -458,15 +483,17 @@ export default function EditProductPage() {
                                 value={formData.handle} onChange={(e) => setFormData({ ...formData, handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">SEO Title</label>
-                        <input type="text" maxLength={60} className="w-full px-4 py-2 border rounded-lg"
-                            value={formData.seo_title} onChange={(e) => setFormData({ ...formData, seo_title: e.target.value })} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">SEO Description</label>
-                        <textarea rows={3} maxLength={160} className="w-full px-4 py-2 border rounded-lg"
-                            value={formData.seo_description} onChange={(e) => setFormData({ ...formData, seo_description: e.target.value })} />
+
+                    {/* Comprehensive SEO Editor */}
+                    <div className="border-t pt-4">
+                        <h3 className="text-md font-semibold mb-3 text-gray-800">Search Engine Optimization</h3>
+                        <p className="text-xs text-gray-500 mb-4">
+                            💡 Leave fields empty to inherit from category: <span className="font-semibold">{selectedCategory?.name || "(not selected)"}</span>
+                        </p>
+                        <SEOMetaEditor
+                            page={formData}
+                            onChange={(updated) => setFormData(updated)}
+                        />
                     </div>
                 </div>
 

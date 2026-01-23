@@ -38,6 +38,13 @@ const sections = [
         href: "/dashboard/storefront/settings",
         icon: Settings,
         color: "bg-gray-100 text-gray-600"
+    },
+    {
+        name: "Search Customization",
+        description: "Customize search page layout, filters, and grid appearance",
+        href: "/dashboard/storefront/search",
+        icon: List, // Using List as icon for now
+        color: "bg-indigo-100 text-indigo-600"
     }
 ];
 
