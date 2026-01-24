@@ -37,7 +37,8 @@ export default function SettingsPage() {
                 setTenant(tenantRes.data.tenant);
                 setFormData({
                     name: tenantRes.data.tenant.name,
-                    subdomain: tenantRes.data.tenant.subdomain
+                    subdomain: tenantRes.data.tenant.subdomain,
+                    font_family: tenantRes.data.tenant.settings?.font_family || 'Inter'
                 });
             }
 
@@ -61,7 +62,11 @@ export default function SettingsPage() {
         setSaving(true);
         try {
             const res = await api.patch("/tenants/current", {
-                name: formData.name
+                name: formData.name,
+                settings: {
+                    ...tenant.settings,
+                    font_family: formData.font_family
+                }
             });
             if (res.data.success) {
                 setTenant(res.data.tenant);
@@ -169,6 +174,25 @@ export default function SettingsPage() {
                                 <span>.yourplatform.com</span>
                             </div>
                             <p className="mt-1 text-xs text-gray-500">Subdomains cannot be changed after creation.</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Font Family
+                            </label>
+                            <select
+                                value={formData.font_family || 'Inter'}
+                                onChange={(e) => setFormData({ ...formData, font_family: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                            >
+                                <option value="Inter">Inter (Default)</option>
+                                <option value="Roboto">Roboto</option>
+                                <option value="Open Sans">Open Sans</option>
+                                <option value="Lato">Lato</option>
+                                <option value="Raleway">Raleway</option>
+                                <option value="Montserrat">Montserrat</option>
+                            </select>
+                            <p className="mt-1 text-xs text-gray-500">Select the primary font for your storefront.</p>
                         </div>
 
                         <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">

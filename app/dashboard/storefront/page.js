@@ -45,6 +45,13 @@ const sections = [
         href: "/dashboard/storefront/search",
         icon: List, // Using List as icon for now
         color: "bg-indigo-100 text-indigo-600"
+    },
+    {
+        name: "Banners",
+        description: "Manage banner groups for carousels and promos",
+        href: "/dashboard/storefront/banners",
+        icon: Layout,
+        color: "bg-pink-100 text-pink-600"
     }
 ];
 

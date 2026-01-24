@@ -97,15 +97,20 @@ export default function CreateProductPage() {
         );
     };
 
+    const handleSelectCategory = (category) => {
+        // Select category and move to form (works for any category)
+        setSelectedCategory(category);
+        setFormData(prev => ({ ...prev, category_ids: [category.id] }));
+        setStep('form');
+    };
+
     const handleCategoryClick = (category) => {
         if (hasChildren(category.id)) {
             // Drill down
             setCurrentParentId(category.id);
         } else {
             // Select leaf and move to form
-            setSelectedCategory(category);
-            setFormData(prev => ({ ...prev, category_ids: [category.id] }));
-            setStep('form');
+            handleSelectCategory(category);
         }
     };
 
@@ -203,8 +208,7 @@ export default function CreateProductPage() {
                         {currentOptions.map(cat => (
                             <div
                                 key={cat.id}
-                                onClick={() => handleCategoryClick(cat)}
-                                className="group cursor-pointer border rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition flex flex-col items-center text-center gap-3"
+                                className="group border rounded-lg p-4 hover:border-blue-500 transition flex flex-col items-center text-center gap-3"
                             >
                                 {cat.image_url ? (
                                     <img src={cat.image_url} className="w-16 h-16 object-cover rounded-md" alt="" />
@@ -214,10 +218,34 @@ export default function CreateProductPage() {
                                     </div>
                                 )}
 
-                                <div>
+                                <div className="flex-1">
                                     <span className="font-medium text-gray-900 block">{cat.name}</span>
-                                    {hasChildren(cat.id) && <span className="text-xs text-gray-500">View Subcategories</span>}
                                 </div>
+
+                                {hasChildren(cat.id) ? (
+                                    <div className="flex flex-col gap-2 w-full">
+                                        <button
+                                            onClick={() => handleSelectCategory(cat)}
+                                            className="w-full px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 transition"
+                                        >
+                                            Select This Category
+                                        </button>
+                                        <button
+                                            onClick={() => handleCategoryClick(cat)}
+                                            className="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center justify-center gap-1"
+                                        >
+                                            <ChevronRight className="w-3 h-3" />
+                                            View Subcategories
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => handleSelectCategory(cat)}
+                                        className="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                                    >
+                                        Select Category
+                                    </button>
+                                )}
                             </div>
                         ))}
                         {currentOptions.length === 0 && (

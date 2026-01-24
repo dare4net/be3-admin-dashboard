@@ -124,6 +124,29 @@ export default function PageBuilderPage() {
         }
     };
 
+    const [bannerGroups, setBannerGroups] = useState([]);
+
+    useEffect(() => {
+        fetchPages();
+        fetchCategories();
+        fetchCollections();
+        fetchAttributes();
+        fetchBannerGroups();
+    }, []);
+
+    // ... existing fetch functions ...
+
+    const fetchBannerGroups = async () => {
+        try {
+            const res = await api.get('/modules/banner/groups');
+            if (res.data.success) {
+                setBannerGroups(res.data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch banner groups', error);
+        }
+    };
+
     const fetchWidgets = async () => {
         setLoading(true);
         try {
@@ -468,6 +491,7 @@ export default function PageBuilderPage() {
                     categories={categories}
                     collections={collections}
                     attributes={attributes}
+                    bannerGroups={bannerGroups}
                     widgets={widgets}
                 />
             )}
@@ -560,7 +584,7 @@ function CarouselImageEditor({ images = [], onChange }) {
 }
 
 // Widget Editor Modal Component
-function WidgetEditorModal({ widget, onSave, onClose, categories = [], collections = [], attributes = [], widgets = [] }) {
+function WidgetEditorModal({ widget, onSave, onClose, categories = [], collections = [], attributes = [], bannerGroups = [], widgets = [] }) {
     const [formData, setFormData] = useState(widget);
     const [activeDevice, setActiveDevice] = useState('desktop'); // 'desktop' or 'mobile'
     const [openSections, setOpenSections] = useState({
@@ -778,7 +802,7 @@ function WidgetEditorModal({ widget, onSave, onClose, categories = [], collectio
                         )}
 
                         {/* Widget Configuration Form */}
-                        {renderWidgetForm(widget.widget_type, formData.config, updateConfig, updateNestedConfig, categories, collections, attributes, parentType, openSections, toggleSection)}
+                        {renderWidgetForm(widget.widget_type, formData.config, updateConfig, updateNestedConfig, categories, collections, attributes, bannerGroups, parentType, openSections, toggleSection)}
                     </form>
                 </div>
 
@@ -1113,7 +1137,7 @@ function getDefaultConfig(widgetType) {
 }
 
 // Helper: Render form fields based on widget type
-function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, categories = [], collections = [], attributes = [], parentType = null, openSections = {}, toggleSection = () => { }) {
+function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, categories = [], collections = [], attributes = [], bannerGroups = [], parentType = null, openSections = {}, toggleSection = () => { }) {
     // New Atomic Blocks
     if (widgetType === 'container') return (
         <>
@@ -1199,6 +1223,30 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
         <>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                 <Input label="Admin Label" value={config.adminLabel || ''} onChange={v => updateConfig('adminLabel', v)} placeholder="e.g. Testimonials Carousel" />
+            </div>
+
+            {/* Banner Module Integration */}
+            <div className="bg-pink-50 p-4 rounded-lg border border-pink-100 mb-4 space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="p-1 bg-pink-100 text-pink-600 rounded">
+                        <LayoutTemplate size={16} />
+                    </span>
+                    <h4 className="font-bold text-sm text-pink-900">Dynamic Banners</h4>
+                </div>
+                <Select
+                    label="Use Banner Group"
+                    value={config.bannerGroupId || ''}
+                    onChange={v => updateConfig('bannerGroupId', v)}
+                    options={[
+                        { value: '', label: 'None (Use Widget Children)' },
+                        ...bannerGroups.map(bg => ({ value: bg.id, label: bg.name }))
+                    ]}
+                />
+                {config.bannerGroupId && (
+                    <div className="text-xs text-pink-700 bg-pink-100/50 p-2 rounded">
+                        <strong>Note:</strong> When a Banner Group is selected, any child widgets dragged into this container in the builder will be hidden on the storefront.
+                    </div>
+                )}
             </div>
 
             <CollapsibleSection
@@ -1693,7 +1741,7 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                     {/* What to Randomize */}
                                     <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
                                         <h5 className="text-sm font-semibold text-gray-900 border-b pb-2">What to Randomize</h5>
-                                        
+
                                         {/* Product Widgets */}
                                         {['product_grid', 'product_carousel'].includes(widgetType) && (
                                             <>
@@ -1836,12 +1884,12 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                                                     />
                                                                     <span className="text-sm text-gray-700">
                                                                         {sort === 'newest' ? 'Newest First' :
-                                                                         sort === 'oldest' ? 'Oldest First' :
-                                                                         sort === 'price_asc' ? 'Price: Low to High' :
-                                                                         sort === 'price_desc' ? 'Price: High to Low' :
-                                                                         sort === 'name_asc' ? 'Name: A-Z' :
-                                                                         sort === 'name_desc' ? 'Name: Z-A' :
-                                                                         'Random'}
+                                                                            sort === 'oldest' ? 'Oldest First' :
+                                                                                sort === 'price_asc' ? 'Price: Low to High' :
+                                                                                    sort === 'price_desc' ? 'Price: High to Low' :
+                                                                                        sort === 'name_asc' ? 'Name: A-Z' :
+                                                                                            sort === 'name_desc' ? 'Name: Z-A' :
+                                                                                                'Random'}
                                                                     </span>
                                                                 </label>
                                                             ))}
@@ -1936,8 +1984,8 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                                             />
                                                             <span className="text-sm text-gray-700">
                                                                 {st === 'top-level' ? 'Top-Level Categories' :
-                                                                 st === 'all-subcategories' ? 'All Subcategories' :
-                                                                 'Random Selection'}
+                                                                    st === 'all-subcategories' ? 'All Subcategories' :
+                                                                        'Random Selection'}
                                                             </span>
                                                         </label>
                                                     ))}
@@ -2134,12 +2182,12 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                         { value: 'solid', label: 'Solid Color' }
                                     ]}
                                 />
-                                
+
                                 {config.overlayType !== 'none' && (
                                     <>
                                         <ColorPicker label="Overlay Color" value={config.overlayColor || '#000000'} onChange={v => updateConfig('overlayColor', v)} />
                                         <Input label="Overlay Opacity (%)" type="number" min="0" max="100" value={config.overlayOpacity || 40} onChange={v => updateConfig('overlayOpacity', parseInt(v))} />
-                                        
+
                                         {config.overlayType === 'gradient' && (
                                             <Select
                                                 label="Gradient Direction"
@@ -2249,8 +2297,8 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                                         />
                                                         <span className="text-sm text-gray-700">
                                                             {st === 'top-level' ? 'Top-Level Categories' :
-                                                             st === 'all-subcategories' ? 'All Subcategories' :
-                                                             'Random Selection'}
+                                                                st === 'all-subcategories' ? 'All Subcategories' :
+                                                                    'Random Selection'}
                                                         </span>
                                                     </label>
                                                 ))}
@@ -3784,7 +3832,7 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-3 mt-4">
                             <h4 className="font-semibold text-sm text-blue-900 border-b pb-2">🎠 Carousel Behavior</h4>
                             <p className="text-xs text-blue-700 mb-2">These settings apply when Display Mode is set to Carousel</p>
-                            
+
                             <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
                                 <div className="flex flex-col">
                                     <span className="text-sm font-semibold text-blue-900">Sneak Peek</span>
@@ -3814,11 +3862,11 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                             </div>
 
                             {config.autoPlay && (
-                                <Input 
-                                    label="Autoplay Interval (ms)" 
-                                    type="number" 
-                                    value={config.autoPlayInterval || 3000} 
-                                    onChange={v => updateConfig('autoPlayInterval', parseInt(v))} 
+                                <Input
+                                    label="Autoplay Interval (ms)"
+                                    type="number"
+                                    value={config.autoPlayInterval || 3000}
+                                    onChange={v => updateConfig('autoPlayInterval', parseInt(v))}
                                     min={1000}
                                 />
                             )}
@@ -3864,11 +3912,11 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                     { value: 'xl', label: 'Extra Large' }
                                 ]}
                             />
-                            <Input 
-                                label="Grid Gap (Grid Mode)" 
-                                value={config.gridGap || ''} 
-                                onChange={v => updateConfig('gridGap', v)} 
-                                placeholder="12px" 
+                            <Input
+                                label="Grid Gap (Grid Mode)"
+                                value={config.gridGap || ''}
+                                onChange={v => updateConfig('gridGap', v)}
+                                placeholder="12px"
                             />
                         </div>
                         <p className="text-xs text-gray-500">Gap/Spacing applies to carousel mode, Grid Gap applies when display mode is set to Grid</p>
@@ -4366,8 +4414,8 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                                         />
                                                         <span className="text-sm text-gray-700">
                                                             {st === 'top-level' ? 'Top-Level Categories' :
-                                                             st === 'all-subcategories' ? 'All Subcategories' :
-                                                             'Random Selection'}
+                                                                st === 'all-subcategories' ? 'All Subcategories' :
+                                                                    'Random Selection'}
                                                         </span>
                                                     </label>
                                                 ))}
@@ -4511,8 +4559,8 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                                         />
                                                         <span className="text-sm text-gray-700">
                                                             {st === 'top-level' ? 'Top-Level Categories' :
-                                                             st === 'all-subcategories' ? 'All Subcategories' :
-                                                             'Random Selection'}
+                                                                st === 'all-subcategories' ? 'All Subcategories' :
+                                                                    'Random Selection'}
                                                         </span>
                                                     </label>
                                                 ))}

@@ -434,7 +434,20 @@ export default function AttributesPage() {
                                     <select
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                         value={formData.type}
-                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                        onChange={(e) => {
+                                            const newType = e.target.value;
+                                            const updates = { ...formData, type: newType };
+
+                                            // Initialize default options for boolean type
+                                            if (newType === 'boolean' && (!formData.options || formData.options.length === 0)) {
+                                                updates.options = [
+                                                    { label: 'Yes', value: 'true' },
+                                                    { label: 'No', value: 'false' }
+                                                ];
+                                            }
+
+                                            setFormData(updates);
+                                        }}
                                     >
                                         <option value="text">Text Input</option>
                                         <option value="number">Number Input</option>
@@ -457,6 +470,124 @@ export default function AttributesPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Options Editor (for select, multiselect, boolean) */}
+                            {(formData.type === 'select' || formData.type === 'multiselect' || formData.type === 'boolean') && (
+                                <div className="bg-green-50/50 p-4 rounded-lg border border-green-100">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <label className="block text-sm font-bold text-green-900 flex items-center gap-2">
+                                            <Check className="w-4 h-4" /> Predefined Options
+                                        </label>
+                                        {formData.type !== 'boolean' && (
+                                            <button
+                                                type="button"
+                                                onClick={addOption}
+                                                className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 flex items-center gap-1"
+                                            >
+                                                <Plus className="w-3 h-3" /> Add Option
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {formData.type === 'boolean' ? (
+                                        <div className="space-y-2">
+                                            <p className="text-xs text-green-700 mb-2">Boolean attributes use Yes/No values by default. You can customize the labels below:</p>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">True Label</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Yes"
+                                                        className="w-full px-2 py-1 text-sm border rounded"
+                                                        value={formData.options[0]?.label || ''}
+                                                        onChange={(e) => {
+                                                            const newOptions = [...formData.options];
+                                                            newOptions[0] = { label: e.target.value || 'Yes', value: 'true' };
+                                                            setFormData({ ...formData, options: newOptions });
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">False Label</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="No"
+                                                        className="w-full px-2 py-1 text-sm border rounded"
+                                                        value={formData.options[1]?.label || ''}
+                                                        onChange={(e) => {
+                                                            const newOptions = [...formData.options];
+                                                            newOptions[1] = { label: e.target.value || 'No', value: 'false' };
+                                                            setFormData({ ...formData, options: newOptions });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                                <div>
+                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Option Label</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. Small"
+                                                        className="w-full px-2 py-1 text-sm border rounded"
+                                                        value={optionInput.label}
+                                                        onChange={(e) => setOptionInput({ ...optionInput, label: e.target.value })}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                addOption();
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Option Value</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. S"
+                                                        className="w-full px-2 py-1 text-sm border rounded"
+                                                        value={optionInput.value}
+                                                        onChange={(e) => setOptionInput({ ...optionInput, value: e.target.value })}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                addOption();
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                                                {formData.options.length === 0 ? (
+                                                    <p className="text-center text-green-300 text-xs py-4 border-2 border-dashed border-green-100 rounded-lg">
+                                                        No options defined. Add options for users to select from.
+                                                    </p>
+                                                ) : (
+                                                    formData.options.map((opt, i) => (
+                                                        <div key={i} className="bg-white p-2 rounded-lg border border-green-200 flex justify-between items-center group hover:border-green-300 transition">
+                                                            <div className="flex-1">
+                                                                <span className="font-medium text-sm text-gray-900">{opt.label}</span>
+                                                                <span className="mx-2 text-gray-300">→</span>
+                                                                <code className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{opt.value}</code>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeOption(i)}
+                                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition opacity-0 group-hover:opacity-100"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Clauses Editor */}
                             <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
