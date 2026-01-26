@@ -1550,6 +1550,26 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                     </div>
 
                     <CollapsibleSection
+                        title="Behaviors & Animations"
+                        icon={<Sparkles size={18} />}
+                        isOpen={openSections.behavior}
+                        onToggle={() => toggleSection('behavior')}
+                    >
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <span className="text-sm font-medium text-gray-700">Enable Entry Animation</span>
+                                <button
+                                    type="button"
+                                    onClick={() => updateConfig('enableEntryAnimation', !config.enableEntryAnimation)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.enableEntryAnimation ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.enableEntryAnimation ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+                        </div>
+                    </CollapsibleSection>
+
+                    <CollapsibleSection
                         title="Styling & Spacing"
                         icon={<Maximize size={18} />}
                         isOpen={openSections.styling}
@@ -2004,6 +2024,15 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                 <>
                     <Input label="Title" value={config.title || ''} onChange={v => updateConfig('title', v)} />
                     <Select label="Style" value={config.style || 'grid'} onChange={v => updateConfig('style', v)} options={[{ value: 'grid', label: 'Grid' }, { value: 'list', label: 'List' }]} />
+                    <Select
+                        label="Layout Mode"
+                        value={config.layoutMode || 'grid'}
+                        onChange={v => updateConfig('layoutMode', v)}
+                        options={[
+                            { value: 'grid', label: 'Standard Grid' },
+                            { value: 'bento', label: 'Bento Grid (Mosaic)' }
+                        ]}
+                    />
 
                     <div className="space-y-4 pt-4 border-t">
                         <Select
@@ -2076,6 +2105,26 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                     </div>
 
                     <CollapsibleSection
+                        title="Behaviors & Animations"
+                        icon={<Sparkles size={18} />}
+                        isOpen={openSections.behavior}
+                        onToggle={() => toggleSection('behavior')}
+                    >
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <span className="text-sm font-medium text-gray-700">Enable Entry Animation</span>
+                                <button
+                                    type="button"
+                                    onClick={() => updateConfig('enableEntryAnimation', !config.enableEntryAnimation)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.enableEntryAnimation ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.enableEntryAnimation ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+                        </div>
+                    </CollapsibleSection>
+
+                    <CollapsibleSection
                         title="Styling & Spacing"
                         icon={<Maximize size={18} />}
                         isOpen={openSections.styling}
@@ -2137,15 +2186,26 @@ function renderWidgetForm(widgetType, config, updateConfig, updateNestedConfig, 
                                 <Input label="Grid Gap" value={config.gridGap || ''} onChange={v => updateConfig('gridGap', v)} placeholder="24px" />
                             </div>
 
-                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-4">
-                                <h4 className="font-semibold text-sm text-gray-900 border-b pb-2">Grid Columns (Per Breakpoint)</h4>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <Input label="Desktop" type="number" value={config.columns?.desktop || 4} onChange={v => updateConfig('columns', { ...(config.columns || {}), desktop: parseInt(v) || 4 })} min={1} max={6} />
-                                    <Input label="Tablet" type="number" value={config.columns?.tablet || 3} onChange={v => updateConfig('columns', { ...(config.columns || {}), tablet: parseInt(v) || 3 })} min={1} max={6} />
-                                    <Input label="Mobile" type="number" value={config.columns?.mobile || 2} onChange={v => updateConfig('columns', { ...(config.columns || {}), mobile: parseInt(v) || 2 })} min={1} max={6} />
+                            {config.layoutMode === 'bento' ? (
+                                <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 space-y-2">
+                                    <h4 className="font-semibold text-sm text-purple-900 flex items-center gap-2">
+                                        <LayoutTemplate size={16} /> Bento Layout Active
+                                    </h4>
+                                    <p className="text-xs text-purple-700">
+                                        Column counts are automatically managed by the Bento Mosaic pattern to create an optimal dynamic layout.
+                                    </p>
                                 </div>
-                                <p className="text-xs text-gray-500">Number of columns to display at each screen size breakpoint</p>
-                            </div>
+                            ) : (
+                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-4">
+                                    <h4 className="font-semibold text-sm text-gray-900 border-b pb-2">Grid Columns (Per Breakpoint)</h4>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <Input label="Desktop" type="number" value={config.columns?.desktop || 4} onChange={v => updateConfig('columns', { ...(config.columns || {}), desktop: parseInt(v) || 4 })} min={1} max={6} />
+                                        <Input label="Tablet" type="number" value={config.columns?.tablet || 3} onChange={v => updateConfig('columns', { ...(config.columns || {}), tablet: parseInt(v) || 3 })} min={1} max={6} />
+                                        <Input label="Mobile" type="number" value={config.columns?.mobile || 2} onChange={v => updateConfig('columns', { ...(config.columns || {}), mobile: parseInt(v) || 2 })} min={1} max={6} />
+                                    </div>
+                                    <p className="text-xs text-gray-500">Number of columns to display at each screen size breakpoint</p>
+                                </div>
+                            )}
 
                             <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 space-y-4">
                                 <h4 className="font-semibold text-sm text-purple-900 border-b pb-2">Category Text Sizing</h4>

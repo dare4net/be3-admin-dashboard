@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import api from "@/lib/axios";
-import { Plus, Edit2, Trash2, Folder, ChevronRight, ChevronDown, Package, Tag, BarChart3, X, Settings } from "lucide-react";
+import { Plus, Edit2, Trash2, Folder, ChevronRight, ChevronDown, Package, Tag, BarChart3, X, Settings, Search } from "lucide-react";
 import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 
 export default function CategoriesPage() {
@@ -19,6 +19,10 @@ export default function CategoriesPage() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
+    const [activeTab, setActiveTab] = useState('general'); // 'general' | 'attributes' | 'seo'
+
+    // Additional state for parent selector
+    const [allCategories, setAllCategories] = useState([]);
     const [formData, setFormData] = useState({
         name: '',
         slug: '',
@@ -59,13 +63,15 @@ export default function CategoriesPage() {
     const fetchInitialData = async () => {
         try {
             setLoading(true);
-            const [topRes, attrRes] = await Promise.all([
+            const [topRes, attrRes, allRes] = await Promise.all([
                 api.get('/products/categories/top-level'),
-                api.get('/products/attributes')
+                api.get('/products/attributes'),
+                api.get('/products/categories/all') // Fetch all for parent selector
             ]);
 
             if (topRes.data.success) setTopLevelCategories(topRes.data.categories);
             if (attrRes.data.success) setAttributes(attrRes.data.data || []);
+            if (allRes.data.success) setAllCategories(allRes.data.categories || []);
         } catch (error) {
             console.error('Failed to fetch data', error);
         } finally {
@@ -151,6 +157,7 @@ export default function CategoriesPage() {
             parent_id: parentId || '',
             description: '',
             image_url: '',
+            // SEO Defaults
             meta_description: '',
             og_title: '',
             og_description: '',
@@ -166,43 +173,60 @@ export default function CategoriesPage() {
         });
         setLinkedAttributes([]);
         setInitialLinkedAttributes([]);
+        setActiveTab('general');
         setIsModalOpen(true);
     };
 
     const handleEdit = async () => {
         if (!categoryDetails) return;
+        const category = categoryDetails;
 
-        setEditingCategory(categoryDetails);
+        setEditingCategory(category);
         setFormData({
-            name: categoryDetails.name,
-            slug: categoryDetails.slug,
-            parent_id: categoryDetails.parent_id || '',
-            description: categoryDetails.description || '',
-            image_url: categoryDetails.image_url || '',
-            meta_description: categoryDetails.meta_description || '',
-            og_title: categoryDetails.og_title || '',
-            og_description: categoryDetails.og_description || '',
-            og_image: categoryDetails.og_image || '',
-            og_type: categoryDetails.og_type || 'product.group',
-            twitter_card: categoryDetails.twitter_card || 'summary_large_image',
-            twitter_title: categoryDetails.twitter_title || '',
-            twitter_description: categoryDetails.twitter_description || '',
-            twitter_image: categoryDetails.twitter_image || '',
-            canonical_url: categoryDetails.canonical_url || '',
-            robots: categoryDetails.robots || 'index,follow',
-            structured_data: categoryDetails.structured_data || null
+            name: category.name,
+            slug: category.slug,
+            parent_id: category.parent_id || '',
+            description: category.description || '',
+            image_url: category.image_url || '',
+            // SEO Fields
+            meta_description: category.meta_description || '',
+            og_title: category.og_title || '',
+            og_description: category.og_description || '',
+            og_image: category.og_image || '',
+            og_type: category.og_type || 'product.group',
+            twitter_card: category.twitter_card || 'summary_large_image',
+            twitter_title: category.twitter_title || '',
+            twitter_description: category.twitter_description || '',
+            twitter_image: category.twitter_image || '',
+            canonical_url: category.canonical_url || '',
+            robots: category.robots || 'index,follow',
+            structured_data: category.structured_data || null
         });
-
-        const attrs = (categoryDetails.attributes || []).map(a => ({
-            attribute_id: a.id,
-            is_required: a.is_required,
-            is_ignored: a.is_ignored,
-            is_inherited: a.is_inherited,
-            source_category_name: a.source_category_name
-        }));
-        setLinkedAttributes(attrs);
-        setInitialLinkedAttributes(JSON.parse(JSON.stringify(attrs)));
+        setActiveTab('general');
         setIsModalOpen(true);
+
+        // Fetch linked attributes for this category
+        try {
+            const res = await api.get(`/products/categories/${category.id}/admin`);
+            if (res.data.category && res.data.category.attributes) {
+                const attrs = res.data.category.attributes.map(a => ({
+                    attribute_id: a.id,
+                    is_required: a.is_required,
+                    is_ignored: a.is_ignored,
+                    is_inherited: a.is_inherited,
+                    source_category_name: a.source_category_name
+                }));
+                setLinkedAttributes(attrs);
+                setInitialLinkedAttributes(JSON.parse(JSON.stringify(attrs))); // Deep copy
+            } else {
+                setLinkedAttributes([]);
+                setInitialLinkedAttributes([]);
+            }
+        } catch (error) {
+            console.error("Failed to fetch linked attributes", error);
+            setLinkedAttributes([]);
+            setInitialLinkedAttributes([]);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -222,17 +246,21 @@ export default function CategoriesPage() {
                 categoryId = res.data.category.id;
             }
 
-            // Sync attributes
+            // --- SYNC ATTRIBUTES ---
             const currentIds = linkedAttributes.map(a => a.attribute_id);
             const initialIds = initialLinkedAttributes.map(a => a.attribute_id);
-            const toRemove = initialIds.filter(id => !currentIds.includes(id));
 
+            // 1. Delete Removed
+            const toRemove = initialIds.filter(id => !currentIds.includes(id));
+            // Only perform deletes if we were editing (creates start fresh anyway, but safe to check)
             if (toRemove.length > 0) {
                 for (const attrId of toRemove) {
                     await api.delete(`/products/categories/${categoryId}/attributes/${attrId}`);
                 }
             }
 
+            // 2. Upsert (Link/Update) Current
+            // We loop through ALL current attributes to ensure is_required/is_ignored is updated if changed
             for (const attr of linkedAttributes) {
                 await api.post(`/products/categories/${categoryId}/attributes`, {
                     attribute_id: attr.attribute_id,
@@ -241,8 +269,8 @@ export default function CategoriesPage() {
                 });
             }
 
-            setIsModalOpen(false);
             await fetchInitialData();
+            setIsModalOpen(false);
 
             // Refresh selected category if it was the one edited
             if (selectedCategory && selectedCategory.id === categoryId) {
@@ -275,6 +303,7 @@ export default function CategoriesPage() {
         const existing = linkedAttributes.find(a => a.attribute_id === attrId);
         if (existing) {
             if (existing.is_ignored) {
+                // Restore rejected inherited attribute
                 setLinkedAttributes(linkedAttributes.map(a =>
                     a.attribute_id === attrId ? { ...a, is_ignored: false } : a
                 ));
@@ -284,19 +313,19 @@ export default function CategoriesPage() {
         setLinkedAttributes([...linkedAttributes, { attribute_id: attrId, is_required: false, is_ignored: false }]);
     };
 
-    const handleUnlinkAttribute = (index) => {
+    const handleUnlinkAttribute = (index, attrId) => {
         const newAttributes = [...linkedAttributes];
         newAttributes.splice(index, 1);
         setLinkedAttributes(newAttributes);
     };
 
-    const toggleRequired = (index) => {
+    const toggleRequired = (index, attrId) => {
         const newAttrs = [...linkedAttributes];
         newAttrs[index].is_required = !newAttrs[index].is_required;
         setLinkedAttributes(newAttrs);
     };
 
-    const toggleIgnored = (index) => {
+    const toggleIgnored = (index, attrId) => {
         const newAttrs = [...linkedAttributes];
         newAttrs[index].is_ignored = !newAttrs[index].is_ignored;
         setLinkedAttributes(newAttrs);
@@ -764,8 +793,8 @@ export default function CategoriesPage() {
                                                                                             <button
                                                                                                 onClick={handleToggleExclusion}
                                                                                                 className={`text-xs px-2 py-1 rounded border transition ${isExcluded
-                                                                                                        ? 'text-green-600 hover:bg-green-50 border-green-300 hover:border-green-400'
-                                                                                                        : 'text-orange-600 hover:bg-orange-50 border-orange-300 hover:border-orange-400'
+                                                                                                    ? 'text-green-600 hover:bg-green-50 border-green-300 hover:border-green-400'
+                                                                                                    : 'text-orange-600 hover:bg-orange-50 border-orange-300 hover:border-orange-400'
                                                                                                     }`}
                                                                                                 title={isExcluded ? "Include this clause in this category" : "Exclude this clause from this category"}
                                                                                             >
@@ -797,81 +826,472 @@ export default function CategoriesPage() {
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
-                            <h3 className="font-bold text-lg">{editingCategory ? 'Edit Category' : 'Create Category'}</h3>
-                            <button onClick={() => setIsModalOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
-                        </div>
+                        <div className="flex flex-col flex-1 min-h-0 bg-gray-50">
+                            <div className="px-6 py-4 border-b flex justify-between items-center bg-white">
+                                <h3 className="font-bold text-lg">{editingCategory ? 'Edit Category' : 'Create Category'}</h3>
+                                <button onClick={() => setIsModalOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
+                            </div>
 
-                        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Name *</label>
-                                    <input
-                                        type="text" required
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-') })}
-                                        className="w-full px-3 py-2 border rounded-lg"
+                            {/* Modal Tabs */}
+                            <div className="px-6 border-b bg-white flex">
+                                {['general', 'seo', 'attributes'].map(tab => (
+                                    <button
+                                        key={tab}
+                                        type="button"
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`
+                                            px-4 py-3 text-sm font-medium border-b-2 capitalize transition
+                                            ${activeTab === tab
+                                                ? 'border-blue-600 text-blue-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700'}
+                                        `}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 min-h-0 p-6">
+                                {activeTab === 'general' && (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Name *</label>
+                                                <input
+                                                    type="text" required
+                                                    value={formData.name}
+                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-') })}
+                                                    className="w-full px-3 py-2 border rounded-lg"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Slug *</label>
+                                                <input
+                                                    type="text" required
+                                                    value={formData.slug}
+                                                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                                                    className="w-full px-3 py-2 border rounded-lg"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Parent Category</label>
+                                            <CategoryTreeSelect
+                                                value={formData.parent_id}
+                                                onChange={(val) => setFormData({ ...formData, parent_id: val })}
+                                                options={allCategories}
+                                                excludeId={editingCategory?.id}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Image URL</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="url"
+                                                    value={formData.image_url}
+                                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                                                    className="w-full px-3 py-2 border rounded-lg"
+                                                    placeholder="https://..."
+                                                />
+                                                {formData.image_url && <img src={formData.image_url} className="w-10 h-10 rounded border object-cover" alt="" />}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Description</label>
+                                            <textarea
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                className="w-full px-3 py-2 border rounded-lg"
+                                                rows={4}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'seo' && (
+                                    <SEOMetaEditor
+                                        page={formData}
+                                        onChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
                                     />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Slug *</label>
-                                    <input
-                                        type="text" required
-                                        value={formData.slug}
-                                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                                        className="w-full px-3 py-2 border rounded-lg"
-                                    />
-                                </div>
-                            </div>
+                                )}
 
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Parent Category</label>
-                                <select
-                                    value={formData.parent_id}
-                                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                >
-                                    <option value="">None (Top Level)</option>
-                                    {topLevelCategories
-                                        .filter(c => c.id !== editingCategory?.id)
-                                        .map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))
-                                    }
-                                </select>
-                            </div>
+                                {activeTab === 'attributes' && (
+                                    <div className="space-y-6">
+                                        <div className="flex gap-2">
+                                            <select
+                                                id="attr-select"
+                                                className="flex-1 px-3 py-2 border rounded-lg"
+                                            >
+                                                <option value="">Select attribute to link...</option>
+                                                {attributes
+                                                    .filter(a => !linkedAttributes.find(la => la.attribute_id === a.id))
+                                                    .map(a => (
+                                                        <option key={a.id} value={a.id}>{a.label} ({a.code})</option>
+                                                    ))
+                                                }
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const select = document.getElementById('attr-select');
+                                                    if (select.value) {
+                                                        handleLinkAttribute(select.value);
+                                                        select.value = '';
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                            >
+                                                Link
+                                            </button>
+                                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Image URL</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="url"
-                                        value={formData.image_url}
-                                        onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                        className="w-full px-3 py-2 border rounded-lg"
-                                        placeholder="https://..."
-                                    />
-                                    {formData.image_url && <img src={formData.image_url} className="w-10 h-10 rounded border object-cover" alt="" />}
-                                </div>
-                            </div>
+                                        <div className="space-y-3">
+                                            {linkedAttributes.map((link, idx) => {
+                                                const attrDef = attributes.find(a => a.id === link.attribute_id);
+                                                if (!attrDef) return null;
 
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Description</label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded-lg"
-                                    rows={2}
-                                />
-                            </div>
+                                                // Parse clauses
+                                                let parsedClauses = [];
+                                                try {
+                                                    parsedClauses = typeof attrDef.clauses === 'string'
+                                                        ? JSON.parse(attrDef.clauses)
+                                                        : (Array.isArray(attrDef.clauses) ? attrDef.clauses : []);
+                                                } catch (e) {
+                                                    parsedClauses = [];
+                                                }
 
-                            <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                                return (
+                                                    <div key={link.attribute_id} className="border rounded-lg p-4 bg-white shadow-sm">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div>
+                                                                <h4 className="font-medium text-gray-900">{attrDef.label}</h4>
+                                                                <code className="text-xs text-gray-500">{attrDef.code}</code>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                {parsedClauses.length > 0 && editingCategory && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const newExpanded = new Set(expandedAttributes);
+                                                                            if (newExpanded.has(attrDef.id)) {
+                                                                                newExpanded.delete(attrDef.id);
+                                                                            } else {
+                                                                                newExpanded.add(attrDef.id);
+                                                                            }
+                                                                            setExpandedAttributes(newExpanded);
+                                                                        }}
+                                                                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded transition"
+                                                                    >
+                                                                        {expandedAttributes.has(attrDef.id) ? (
+                                                                            <>
+                                                                                <ChevronDown className="w-3 h-3" />
+                                                                                Hide Clauses
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <ChevronRight className="w-3 h-3" />
+                                                                                Show Clauses
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                )}
+
+                                                                {!link.is_inherited && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleUnlinkAttribute(idx)}
+                                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                                {link.is_inherited && (
+                                                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                                        Inherited from {link.source_category_name || 'Parent'}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex gap-4 mb-2">
+                                                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={link.is_required}
+                                                                    onChange={() => toggleRequired(idx)}
+                                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                                    disabled={link.is_inherited}
+                                                                />
+                                                                Required
+                                                            </label>
+                                                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={link.is_ignored}
+                                                                    onChange={() => toggleIgnored(idx)}
+                                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                                />
+                                                                Hidden/Ignored
+                                                            </label>
+                                                        </div>
+
+                                                        {/* Collapsible Clauses (Edit Mode Only) */}
+                                                        {parsedClauses.length > 0 && expandedAttributes.has(attrDef.id) && editingCategory && (
+                                                            <div className="mt-3 pt-3 border-t">
+                                                                <p className="text-xs text-gray-500 mb-2">Toggle clauses to exclude them from this category:</p>
+                                                                <div className="space-y-1.5">
+                                                                    {parsedClauses.map((clause, cIdx) => {
+                                                                        const excludedIds = Array.isArray(clause.excluded_category_ids) ? clause.excluded_category_ids : [];
+                                                                        const isExcluded = excludedIds.includes(editingCategory.id);
+
+                                                                        const handleToggleExclusion = async () => {
+                                                                            try {
+                                                                                const newExcludedIds = isExcluded
+                                                                                    ? excludedIds.filter(id => id !== editingCategory.id)
+                                                                                    : [...excludedIds, editingCategory.id];
+
+                                                                                const updatedClauses = [...parsedClauses];
+                                                                                updatedClauses[cIdx] = {
+                                                                                    ...clause,
+                                                                                    excluded_category_ids: newExcludedIds
+                                                                                };
+
+                                                                                // Immediate update to Attribute definition
+                                                                                const res = await api.put(`/products/attributes/${attrDef.id}`, {
+                                                                                    ...attrDef,
+                                                                                    clauses: JSON.stringify(updatedClauses)
+                                                                                });
+
+                                                                                if (res.data.success) {
+                                                                                    // Update attributes state locally to reflect change without full reload
+                                                                                    const updatedGlobalAttributes = attributes.map(a => {
+                                                                                        if (a.id === attrDef.id) {
+                                                                                            return { ...a, clauses: updatedClauses }; // Store as object or string? Original is mixed, let's keep consistency.
+                                                                                            // Actually fetchInitialData parses it? No, setAttributes stores raw.
+                                                                                            // Let's store raw string to match initial load expectation, OR object if consistent.
+                                                                                            // The component code parses it on render: "parsedClauses = typeof attrDef.clauses === 'string'..."
+                                                                                            // So storing object is safer if our render handles check.
+                                                                                        }
+                                                                                        return a;
+                                                                                    });
+                                                                                    // But wait, setAttributes expects raw data from API?
+                                                                                    // Better to update 'attributes' state with the new clause data
+                                                                                    // Hack: Update local 'attributes' state directly
+                                                                                    // We need to mutate 'attributes' state
+                                                                                    // setAttributes(updatedGlobalAttributes); // 'attributes' is state
+
+                                                                                    // Re-fetch attributes to be safe and clean
+                                                                                    const attrRes = await api.get('/products/attributes');
+                                                                                    if (attrRes.data.success) setAttributes(attrRes.data.data || []);
+                                                                                }
+                                                                            } catch (error) {
+                                                                                console.error('Failed to toggle exclusion', error);
+                                                                                alert('Failed to update exclusion');
+                                                                            }
+                                                                        };
+
+                                                                        return (
+                                                                            <div key={cIdx} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100">
+                                                                                <div className="flex-1">
+                                                                                    <span className="text-sm font-medium text-gray-800">{clause.label || clause.name}</span>
+                                                                                    <div className="text-xs text-gray-500">
+                                                                                        {clause.operator} {Array.isArray(clause.value) ? clause.value.join(', ') : clause.value}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={handleToggleExclusion}
+                                                                                    className={`text-xs px-2 py-1 rounded border transition ${isExcluded
+                                                                                        ? 'text-green-600 hover:bg-green-50 border-green-300 hover:border-green-400'
+                                                                                        : 'text-orange-600 hover:bg-orange-50 border-orange-300 hover:border-orange-400'
+                                                                                        }`}
+                                                                                >
+                                                                                    {isExcluded ? 'Include' : 'Exclude'}
+                                                                                </button>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {parsedClauses.length > 0 && !editingCategory && (
+                                                            <div className="mt-2 text-xs text-gray-400 italic">
+                                                                Save category to configure clause exclusions.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            {linkedAttributes.length === 0 && (
+                                                <p className="text-center text-gray-500 py-8 border-2 border-dashed rounded-lg">
+                                                    No attributes linked to this category yet.
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </form>
+
+                            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+                                <button onClick={handleSubmit} type="button" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                     {editingCategory ? 'Save Changes' : 'Create Category'}
                                 </button>
                             </div>
-                        </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// --- Helper Components ---
+
+function CategoryTreeSelect({ value, onChange, options, excludeId }) {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const [selectedName, setSelectedName] = React.useState('');
+    const [expanded, setExpanded] = React.useState(new Set());
+    const [nodes, setNodes] = React.useState([]); // Flat list of all nodes
+
+    // Build tree structure from flat list
+    React.useEffect(() => {
+        if (options && options.length > 0) {
+            setNodes(options);
+        }
+    }, [options]);
+
+    // Find selected name
+    React.useEffect(() => {
+        if (!value) {
+            setSelectedName('None (Top Level)');
+            return;
+        }
+        const node = nodes.find(n => n.id === value);
+        if (node) {
+            setSelectedName(node.name);
+        } else {
+            setSelectedName('Unknown Category');
+        }
+    }, [value, nodes]);
+
+    // Filter nodes based on search
+    const filteredNodes = nodes.filter(n =>
+        n.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        n.id !== excludeId
+    );
+
+    const handleSelect = (node) => {
+        onChange(node.id);
+        setIsOpen(false);
+        setSearchTerm('');
+    };
+
+    const handleClear = (e) => {
+        e.stopPropagation();
+        onChange('');
+        setIsOpen(false);
+    };
+
+    const toggleExpand = (e, nodeId) => {
+        e.stopPropagation();
+        const newExpanded = new Set(expanded);
+        if (newExpanded.has(nodeId)) newExpanded.delete(nodeId);
+        else newExpanded.add(nodeId);
+        setExpanded(newExpanded);
+    };
+
+    // Render tree node
+    const renderNode = (node, level = 0) => {
+        const hasChildren = nodes.some(n => n.parent_id === node.id && n.id !== excludeId);
+        const isExpanded = expanded.has(node.id) || searchTerm;
+
+        return (
+            <div key={node.id}>
+                <div
+                    className={`flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer rounded ${value === node.id ? 'bg-blue-50 text-blue-600' : ''}`}
+                    style={{ paddingLeft: `${level * 16 + 8}px` }}
+                    onClick={() => handleSelect(node)}
+                >
+                    {hasChildren && !searchTerm && (
+                        <button onClick={(e) => toggleExpand(e, node.id)} type="button" className="p-0.5 hover:bg-gray-200 rounded">
+                            {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                        </button>
+                    )}
+                    {!hasChildren && !searchTerm && <div className="w-5" />}
+
+                    <Folder className={`w-4 h-4 ${value === node.id ? 'text-blue-500' : 'text-gray-400'}`} />
+                    <span className="text-sm">{node.name}</span>
+                </div>
+                {hasChildren && isExpanded && !searchTerm && (
+                    <div>
+                        {nodes.filter(n => n.parent_id === node.id && n.id !== excludeId).map(child => renderNode(child, level + 1))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <div className="relative">
+            <div
+                className="w-full px-3 py-2 border rounded-lg flex items-center justify-between cursor-pointer bg-white hover:border-gray-400 transition-colors"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                    <Folder className="w-4 h-4 text-gray-400" />
+                    <span>{selectedName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    {value && (
+                        <button onClick={handleClear} type="button" className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-red-500">
+                            <X className="w-3 h-3" />
+                        </button>
+                    )}
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </div>
+            </div>
+
+            {isOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-50 max-h-60 overflow-hidden flex flex-col">
+                    <div className="p-2 border-b">
+                        <input
+                            type="text"
+                            placeholder="Search categories..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full px-3 py-1.5 text-sm border rounded bg-gray-50 focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none"
+                            autoFocus
+                        />
+                    </div>
+                    <div className="overflow-y-auto flex-1 p-1">
+                        <div
+                            className={`flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer rounded ${!value ? 'bg-blue-50 text-blue-600' : ''}`}
+                            onClick={() => { onChange(''); setIsOpen(false); }}
+                        >
+                            <div className="w-5" />
+                            <span className="text-sm italic text-gray-500">None (Top Level)</span>
+                        </div>
+                        {searchTerm ? (
+                            filteredNodes.map(node => (
+                                <div
+                                    key={node.id}
+                                    className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer rounded pl-8"
+                                    onClick={() => handleSelect(node)}
+                                >
+                                    <Folder className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm">{node.name}</span>
+                                    {node.parent_id && <span className="text-xs text-gray-400 ml-auto">in {nodes.find(n => n.id === node.parent_id)?.name}</span>}
+                                </div>
+                            ))
+                        ) : (
+                            nodes.filter(n => !n.parent_id && n.id !== excludeId).map(node => renderNode(node))
+                        )}
+                        {nodes.length === 0 && <p className="text-sm text-gray-400 p-4 text-center">No categories found</p>}
                     </div>
                 </div>
             )}

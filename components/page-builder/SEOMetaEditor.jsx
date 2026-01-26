@@ -15,28 +15,31 @@ export default function SEOMetaEditor({ page, onChange }) {
             {/* Tab Navigation */}
             <div className="flex gap-0 border-b bg-gray-50">
                 <button
+                    type="button"
                     onClick={() => setActiveTab('basic')}
                     className={`flex-1 py-3 px-6 font-medium transition-colors ${activeTab === 'basic'
-                            ? 'bg-white border-b-2 border-blue-600 text-blue-600'
-                            : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-white border-b-2 border-blue-600 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-100'
                         }`}
                 >
                     📄 Basic SEO
                 </button>
                 <button
+                    type="button"
                     onClick={() => setActiveTab('social')}
                     className={`flex-1 py-3 px-6 font-medium transition-colors ${activeTab === 'social'
-                            ? 'bg-white border-b-2 border-blue-600 text-blue-600'
-                            : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-white border-b-2 border-blue-600 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-100'
                         }`}
                 >
                     🌐 Social Media
                 </button>
                 <button
+                    type="button"
                     onClick={() => setActiveTab('advanced')}
                     className={`flex-1 py-3 px-6 font-medium transition-colors ${activeTab === 'advanced'
-                            ? 'bg-white border-b-2 border-blue-600 text-blue-600'
-                            : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-white border-b-2 border-blue-600 text-blue-600'
+                        : 'text-gray-600 hover:bg-gray-100'
                         }`}
                 >
                     ⚙️ Advanced
@@ -62,8 +65,8 @@ export default function SEOMetaEditor({ page, onChange }) {
                             <div className="flex justify-between mt-1">
                                 <p className="text-xs text-gray-500">Appears in browser tab and search results</p>
                                 <p className={`text-xs font-medium ${(page.title?.length || 0) >= 50 && (page.title?.length || 0) <= 60
-                                        ? 'text-green-600'
-                                        : 'text-orange-500'
+                                    ? 'text-green-600'
+                                    : 'text-orange-500'
                                     }`}>
                                     {page.title?.length || 0}/60
                                 </p>
@@ -85,8 +88,8 @@ export default function SEOMetaEditor({ page, onChange }) {
                             <div className="flex justify-between mt-1">
                                 <p className="text-xs text-gray-500">Shown in search engine results</p>
                                 <p className={`text-xs font-medium ${(page.meta_description?.length || 0) >= 150
-                                        ? 'text-green-600'
-                                        : 'text-orange-500'
+                                    ? 'text-green-600'
+                                    : 'text-orange-500'
                                     }`}>
                                     {page.meta_description?.length || 0}/160
                                 </p>

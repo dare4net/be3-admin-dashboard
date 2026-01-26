@@ -16,6 +16,12 @@ export default function LoginPage() {
         setLoading(true);
         setError("");
 
+        // Clear previous session data
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('permissions');
+        localStorage.removeItem('refreshToken');
+
         try {
             // 1. Resolve Tenant
             if (!formData.subdomain) {
@@ -53,6 +59,12 @@ export default function LoginPage() {
             if (!permissions || !permissions.includes('admin.access')) {
                 throw new Error("Access Denied: You do not have permissions to access the Admin Dashboard.");
             }
+
+            console.log('[Login] Received Tokens:', {
+                hasAccessToken: !!token,
+                hasRefreshToken: !!refreshToken,
+                refreshTokenLength: refreshToken ? refreshToken.length : 0
+            });
 
             localStorage.removeItem('temp_tenant_id'); // Cleanup
             login(token, user, permissions, refreshToken);
