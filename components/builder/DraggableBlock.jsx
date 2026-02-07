@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Edit2, Trash2, Eye, EyeOff, ChevronRight, ChevronDown } from "lucide-react";
+import { GripVertical, Edit2, Trash2, Eye, EyeOff, Copy, ChevronRight, ChevronDown } from "lucide-react";
 import { WIDGET_GROUPS } from "./SidebarLibrary";
 
-export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete, onToggleVisibility, dirtyWidgetIds }) {
+export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete, onDuplicate, onToggleVisibility, dirtyWidgetIds }) {
     const [isExpanded, setIsExpanded] = useState(true);
 
     const isDirty = dirtyWidgetIds?.has(widget.id);
@@ -103,6 +103,13 @@ export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete,
                         {widget.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
                     </button>
                     <button
+                        onClick={() => onDuplicate(widget)}
+                        className="p-2 hover:bg-gray-100 rounded text-green-600 hover:bg-green-50"
+                        title="Duplicate"
+                    >
+                        <Copy size={16} />
+                    </button>
+                    <button
                         onClick={() => onEdit(widget)}
                         className="p-2 hover:bg-gray-100 rounded text-blue-600 hover:bg-blue-50"
                         title="Edit"
@@ -130,6 +137,7 @@ export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete,
                                 widgets={widgets}
                                 onEdit={onEdit}
                                 onDelete={onDelete}
+                                onDuplicate={onDuplicate}
                                 onToggleVisibility={onToggleVisibility}
                                 dirtyWidgetIds={dirtyWidgetIds}
                             />

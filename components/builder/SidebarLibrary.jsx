@@ -4,7 +4,7 @@ import {
     Video, ShoppingBag, LayoutTemplate, Star, Percent,
     CreditCard, Layout, Heading, Divide, GripHorizontal, Code,
     Clock, Sparkles, DollarSign, ChevronsUpDown, FolderKanban, Megaphone,
-    Search, SlidersHorizontal, Grid, ChevronRight, ChevronDown, Eye, EyeOff, Edit2, Trash2
+    Search, SlidersHorizontal, Grid, ChevronRight, ChevronDown, Eye, EyeOff, Edit2, Trash2, Copy
 } from "lucide-react";
 
 export const WIDGET_GROUPS = [
@@ -85,7 +85,7 @@ export const WIDGET_GROUPS = [
     }
 ];
 
-function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onToggleVisibility, dirtyWidgetIds }) {
+function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onDuplicate, onToggleVisibility, dirtyWidgetIds }) {
     const [isExpanded, setIsExpanded] = useState(true);
     const hasChildren = ['container', 'columns', 'grid', 'carousel_container', 'randomizer'].includes(widget.widget_type);
     const childWidgets = widgets.filter(w => w.parent_id === widget.id).sort((a, b) => a.sort_order - b.sort_order);
@@ -129,10 +129,13 @@ function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onToggleV
                 </span>
 
                 <div className="hidden group-hover:flex items-center gap-1">
-                    <button onClick={() => onToggleVisibility(widget)} className="p-1 hover:bg-gray-200 rounded text-gray-500">
+                    <button onClick={() => onToggleVisibility(widget)} className="p-1 hover:bg-gray-200 rounded text-gray-500" title="Toggle Visibility">
                         {widget.is_active ? <Eye size={12} /> : <EyeOff size={12} />}
                     </button>
-                    <button onClick={() => onEdit(widget)} className="p-1 hover:bg-gray-100 rounded text-blue-600">
+                    <button onClick={() => onDuplicate(widget)} className="p-1 hover:bg-gray-100 rounded text-green-600" title="Duplicate">
+                        <Copy size={12} />
+                    </button>
+                    <button onClick={() => onEdit(widget)} className="p-1 hover:bg-gray-100 rounded text-blue-600" title="Edit">
                         <Edit2 size={12} />
                     </button>
                 </div>
@@ -149,6 +152,7 @@ function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onToggleV
                                 level={level + 1}
                                 onEdit={onEdit}
                                 onDelete={onDelete}
+                                onDuplicate={onDuplicate}
                                 onToggleVisibility={onToggleVisibility}
                                 dirtyWidgetIds={dirtyWidgetIds}
                             />
@@ -167,7 +171,7 @@ function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onToggleV
     );
 }
 
-export default function SidebarLibrary({ onAddWidget, widgets = [], onEdit, onDelete, onToggleVisibility, dirtyWidgetIds }) {
+export default function SidebarLibrary({ onAddWidget, widgets = [], onEdit, onDelete, onDuplicate, onToggleVisibility, dirtyWidgetIds }) {
     const [activeTab, setActiveTab] = useState('library'); // 'library' or 'structure'
 
     return (
@@ -236,6 +240,7 @@ export default function SidebarLibrary({ onAddWidget, widgets = [], onEdit, onDe
                                         widgets={widgets}
                                         onEdit={onEdit}
                                         onDelete={onDelete}
+                                        onDuplicate={onDuplicate}
                                         onToggleVisibility={onToggleVisibility}
                                         dirtyWidgetIds={dirtyWidgetIds}
                                     />

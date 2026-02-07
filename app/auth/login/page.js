@@ -45,10 +45,15 @@ export default function LoginPage() {
                 password: formData.password
             });
 
-            // Backend returns: { success, message, token, user, permissions, refreshToken... }
+            // Backend returns: { success, message, token, user, permissions, roles, allowedCategories, hasUnrestrictedCategoryAccess, refreshToken... }
             const token = res.data.token || res.data.accessToken;
             const user = res.data.user;
-            const permissions = res.data.permissions;
+            const permissions = res.data.permissions || [];
+            const roles = res.data.roles || [];
+            const allowedCategories = res.data.allowedCategories || [];
+            const hasUnrestrictedCategoryAccess = res.data.hasUnrestrictedCategoryAccess !== undefined
+                ? res.data.hasUnrestrictedCategoryAccess
+                : true;
             const refreshToken = res.data.refreshToken;
 
             if (!token || !user) {
@@ -63,11 +68,14 @@ export default function LoginPage() {
             console.log('[Login] Received Tokens:', {
                 hasAccessToken: !!token,
                 hasRefreshToken: !!refreshToken,
-                refreshTokenLength: refreshToken ? refreshToken.length : 0
+                refreshTokenLength: refreshToken ? refreshToken.length : 0,
+                permissionsCount: permissions.length,
+                rolesCount: roles.length,
+                hasUnrestrictedCategoryAccess
             });
 
             localStorage.removeItem('temp_tenant_id'); // Cleanup
-            login(token, user, permissions, refreshToken);
+            login(token, user, permissions, roles, allowedCategories, hasUnrestrictedCategoryAccess, refreshToken);
         } catch (err) {
             console.error("Login error:", err);
             setError(err.response?.data?.message || err.message || "Login failed");

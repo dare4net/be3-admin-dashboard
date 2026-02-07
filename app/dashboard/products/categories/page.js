@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { Plus, Edit2, Trash2, Folder, ChevronRight, ChevronDown, Package, Tag, BarChart3, X, Settings, Search } from "lucide-react";
 import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
+import ProductForm from "@/components/products/ProductForm";
 
 export default function CategoriesPage() {
     // Navigation State
@@ -18,6 +19,7 @@ export default function CategoriesPage() {
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreateProductModalOpen, setIsCreateProductModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
     const [activeTab, setActiveTab] = useState('general'); // 'general' | 'attributes' | 'seo'
 
@@ -319,6 +321,25 @@ export default function CategoriesPage() {
         setLinkedAttributes(newAttributes);
     };
 
+    const handleDeleteProduct = async (productId) => {
+        if (!confirm("Are you sure you want to delete this product?")) return;
+
+        try {
+            await api.delete(`/products/${productId}`);
+            // Remove from local list
+            setPaginatedProducts(prev => prev.filter(p => p.id !== productId));
+            // Update counts locally (approximate)
+            setCategoryDetails(prev => ({
+                ...prev,
+                total_product_count: Math.max(0, prev.total_product_count - 1),
+                direct_product_count: Math.max(0, prev.direct_product_count - 1) // Assuming direct for simplicity
+            }));
+        } catch (error) {
+            console.error("Failed to delete product", error);
+            alert("Failed to delete product");
+        }
+    };
+
     const toggleRequired = (index, attrId) => {
         const newAttrs = [...linkedAttributes];
         newAttrs[index].is_required = !newAttrs[index].is_required;
@@ -574,9 +595,18 @@ export default function CategoriesPage() {
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center">
                                                 <h3 className="text-lg font-semibold">Products</h3>
-                                                <span className="text-sm text-gray-600">
-                                                    {categoryDetails.total_product_count} total products ({categoryDetails.direct_product_count} direct)
-                                                </span>
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-sm text-gray-600">
+                                                        {categoryDetails.total_product_count} total ({categoryDetails.direct_product_count} direct)
+                                                    </span>
+                                                    <button
+                                                        onClick={() => setIsCreateProductModalOpen(true)}
+                                                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                                                    >
+                                                        <Plus className="w-3 h-3" />
+                                                        Add Product
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             {loadingProducts ? (
@@ -607,6 +637,24 @@ export default function CategoriesPage() {
                                                                     }`}>
                                                                     {product.status}
                                                                 </span>
+
+                                                                {/* Actions */}
+                                                                <div className="flex items-center gap-1 pl-2 border-l ml-3">
+                                                                    <a
+                                                                        href={`/dashboard/products/${product.id}/edit`}
+                                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                                                        title="Edit Product"
+                                                                    >
+                                                                        <Edit2 className="w-4 h-4" />
+                                                                    </a>
+                                                                    <button
+                                                                        onClick={() => handleDeleteProduct(product.id)}
+                                                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                                                        title="Delete Product"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1141,6 +1189,30 @@ export default function CategoriesPage() {
                                     {editingCategory ? 'Save Changes' : 'Create Category'}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Product Creation Modal */}
+            {isCreateProductModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <ProductForm
+                                categoryId={categoryDetails?.id}
+                                onSuccess={() => {
+                                    setIsCreateProductModalOpen(false);
+                                    fetchPaginatedProducts(productsPagination.page); // Refresh list
+                                    // Update count optionally?
+                                    setCategoryDetails(prev => ({
+                                        ...prev,
+                                        total_product_count: prev.total_product_count + 1,
+                                        direct_product_count: prev.direct_product_count + 1
+                                    }));
+                                }}
+                                onCancel={() => setIsCreateProductModalOpen(false)}
+                            />
                         </div>
                     </div>
                 </div>

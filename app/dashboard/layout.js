@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthContext";
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -12,35 +13,57 @@ const navigation = [
         name: "Dashboard",
         href: "/dashboard",
         icon: LayoutDashboard,
-        exact: true
+        exact: true,
+        requiredPermission: "admin.access" // All users with admin access
+    },
+    {
+        name: "Business",
+        href: "/dashboard/business",
+        icon: Building2,
+        requiredRole: "Vendor",
+        allowSuperAdmin: true
     },
     {
         name: "Catalog",
         href: "/dashboard/catalog",
         icon: Package,
-        relatedPaths: ['/dashboard/products']
+        relatedPaths: ['/dashboard/products'],
+        requiredPermissions: ["products.view", "categories.view", "collections.view"] // Any of these
+    },
+    {
+        name: "Orders",
+        href: "/dashboard/orders",
+        icon: ShoppingCart,
+        requiredPermission: "orders.view",
+        hideForAdmin: false,
+        vendorOnly: true // Custom hint for filtering
     },
     {
         name: "Sales",
         href: "/dashboard/sales",
         icon: ShoppingCart,
-        relatedPaths: ['/dashboard/orders', '/dashboard/customers']
+        relatedPaths: ['/dashboard/orders', '/dashboard/customers'],
+        requiredPermissions: ["orders.view", "customers.view"], // Any of these
+        hideForVendor: true // Hide the grouped "Sales" for vendors
     },
     {
         name: "Storefront",
         href: "/dashboard/storefront",
         icon: Paintbrush,
-        relatedPaths: ['/dashboard/menus']
+        relatedPaths: ['/dashboard/menus'],
+        requiredPermissions: ["pagebuilder.view", "pages.view", "layouts.view", "themes.view", "banners.view"] // Any
     },
     {
         name: "Settings",
         href: "/dashboard/settings",
-        icon: Settings
+        icon: Settings,
+        requiredPermission: "settings.view"
     },
 ];
 
 export default function DashboardLayout({ children }) {
     const { user, loading, logout } = useAuth();
+    const { hasPermission, hasAnyPermission, hasRole } = usePermissions();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -57,6 +80,42 @@ export default function DashboardLayout({ children }) {
             </div>
         );
     }
+
+    // Filter navigation based on user permissions
+    const filteredNavigation = navigation.filter(item => {
+        const isVendor = hasRole("Vendor");
+        const isSuperAdmin = hasPermission("*");
+
+        // 1. Check Role-based hiding/showing
+        if (item.vendorOnly && !isVendor && !isSuperAdmin) return false;
+        if (item.hideForVendor && isVendor && !isSuperAdmin) return false;
+
+        // 2. Check for required role if specified using explicit requiredRole property
+        if (item.requiredRole) {
+            const hasRequestedRole = hasRole(item.requiredRole);
+            const canBypass = item.allowSuperAdmin && isSuperAdmin;
+            if (!hasRequestedRole && !canBypass) return false;
+        }
+
+        // 3. Safety check: if permissions haven't loaded yet, show all items
+        // This prevents hiding navigation during initial load
+        if (!hasPermission || !hasAnyPermission) {
+            return true;
+        }
+
+        // 4. If item has a single required permission
+        if (item.requiredPermission) {
+            return hasPermission(item.requiredPermission);
+        }
+
+        // 5. If item has multiple required permissions (user needs ANY of them)
+        if (item.requiredPermissions && item.requiredPermissions.length > 0) {
+            return hasAnyPermission(item.requiredPermissions);
+        }
+
+        // No permission requirement, show by default
+        return true;
+    });
 
     // Checking if nav item is active
     const isNavItemActive = (item) => {
@@ -98,8 +157,8 @@ export default function DashboardLayout({ children }) {
             crumbs.push({ label: 'Catalog', href: '/dashboard/catalog', isLast: pathname === '/dashboard/catalog' });
         } else if (pathname.startsWith('/dashboard/sales')) {
             crumbs.push({ label: 'Sales', href: '/dashboard/sales', isLast: pathname === '/dashboard/sales' });
-        } else if (pathname.startsWith('/dashboard/settings')) {
-            crumbs.push({ label: 'Settings', href: '/dashboard/settings', isLast: pathname === '/dashboard/settings' });
+        } else if (pathname.startsWith('/dashboard/business')) {
+            crumbs.push({ label: 'Business', href: '/dashboard/business', isLast: true });
         } else {
             // Default to Dashboard if not matching any group
             crumbs.push({ label: 'Dashboard', href: '/dashboard', isLast: pathname === '/dashboard' });
@@ -138,7 +197,7 @@ export default function DashboardLayout({ children }) {
 
                     {/* Navigation */}
                     <nav className="flex-1 px-4 py-6 space-y-2">
-                        {navigation.map((item) => {
+                        {filteredNavigation.map((item) => {
                             const isActive = isNavItemActive(item);
                             return (
                                 <Link

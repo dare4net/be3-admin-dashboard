@@ -23,7 +23,7 @@ import {
 import SidebarLibrary, { WIDGET_GROUPS } from "@/components/builder/SidebarLibrary";
 import BuilderCanvas from "@/components/builder/BuilderCanvas";
 import DraggableBlock from "@/components/builder/DraggableBlock";
-import { Eye, EyeOff, Edit2, Trash2, GripVertical, Save, ArrowLeft, LayoutTemplate, Maximize, Plus, X, ChevronLeft, ChevronRight, Sparkles, Shuffle } from "lucide-react";
+import { Eye, EyeOff, Edit2, Trash2, Copy, GripVertical, Save, ArrowLeft, LayoutTemplate, Maximize, Plus, X, ChevronLeft, ChevronRight, Sparkles, Shuffle } from "lucide-react";
 
 // Visual Configuration Components
 import ColorPicker from "@/components/config/ColorPicker";
@@ -215,6 +215,48 @@ export default function PageBuilderPage() {
                 data: { is_active: !widget.is_active }
             }]);
         }
+    };
+
+    const handleDuplicateWidget = (originalWidget) => {
+        const createDuplicates = (widgetToClone, newParentId = null) => {
+            const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+            // Find children of THIS widget in the CURRENT state
+            const children = widgets.filter(w => w.parent_id === widgetToClone.id);
+
+            // Create the duplicate of current widget
+            const { id, created_at, updated_at, ...cleanWidget } = widgetToClone;
+            const duplicate = {
+                ...cleanWidget,
+                id: tempId,
+                parent_id: newParentId,
+            };
+
+            // Recursive step for children
+            const childDuplicates = children.flatMap(child => createDuplicates(child, tempId));
+
+            return [duplicate, ...childDuplicates];
+        };
+
+        const duplicatedSet = createDuplicates(originalWidget, originalWidget.parent_id);
+
+        // Add to main state
+        setWidgets(prev => [...prev, ...duplicatedSet]);
+
+        // Track in pending changes
+        const changes = duplicatedSet.map(w => ({
+            type: 'create',
+            tempId: w.id,
+            data: {
+                widget_type: w.widget_type,
+                config: w.config,
+                page_type: w.page_type,
+                is_active: w.is_active,
+                parent_id: w.parent_id,
+                layout_id: layoutId
+            }
+        }));
+        setPendingChanges(prev => [...prev, ...changes]);
     };
 
     const handleSaveWidget = async (widgetData) => {
@@ -440,6 +482,7 @@ export default function PageBuilderPage() {
                     widgets={widgets}
                     onEdit={handleEditWidget}
                     onDelete={handleDeleteWidget}
+                    onDuplicate={handleDuplicateWidget}
                     onToggleVisibility={handleToggleVisibility}
                     dirtyWidgetIds={dirtyWidgetIds}
                 />
@@ -459,6 +502,7 @@ export default function PageBuilderPage() {
                                 widgets={widgets}
                                 onEdit={handleEditWidget}
                                 onDelete={handleDeleteWidget}
+                                onDuplicate={handleDuplicateWidget}
                                 onToggleVisibility={handleToggleVisibility}
                                 dirtyWidgetIds={dirtyWidgetIds}
                             />

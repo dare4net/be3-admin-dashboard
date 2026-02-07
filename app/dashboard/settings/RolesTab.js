@@ -21,7 +21,7 @@ export default function RolesTab() {
         try {
             const [rolesRes, permsRes] = await Promise.all([
                 api.get("/roles"),
-                api.get("/roles/permissions")
+                api.get("/api/permissions")
             ]);
             setRoles(rolesRes.data.roles);
             setPermissions(permsRes.data.permissions);

@@ -5,6 +5,7 @@ import api from "@/lib/axios";
 import { Save, Loader2, Store, LayoutTemplate } from "lucide-react";
 import Link from 'next/link';
 import RolesTab from "./RolesTab";
+import UsersTab from "./UsersTab";
 
 export default function SettingsPage() {
     const [tenant, setTenant] = useState(null);
@@ -19,6 +20,7 @@ export default function SettingsPage() {
     const [profileForm, setProfileForm] = useState({
         first_name: "",
         last_name: "",
+        business_name: "",
         password: ""
     });
 
@@ -47,6 +49,7 @@ export default function SettingsPage() {
                 setProfileForm({
                     first_name: userRes.data.user.first_name || "",
                     last_name: userRes.data.user.last_name || "",
+                    business_name: userRes.data.user.business_name || "",
                     password: ""
                 });
             }
@@ -87,7 +90,8 @@ export default function SettingsPage() {
         try {
             const updateData = {
                 first_name: profileForm.first_name,
-                last_name: profileForm.last_name
+                last_name: profileForm.last_name,
+                business_name: profileForm.business_name
             };
             if (profileForm.password) {
                 updateData.password = profileForm.password;
@@ -132,18 +136,18 @@ export default function SettingsPage() {
                     Store Settings
                 </button>
                 <button
-                    onClick={() => setActiveTab("profile")}
-                    className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-gray-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === "profile" ? "bg-white shadow" : "text-gray-600 hover:bg-white/[0.12] hover:text-gray-800"
-                        }`}
-                >
-                    Profile Settings
-                </button>
-                <button
                     onClick={() => setActiveTab("roles")}
                     className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-gray-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === "roles" ? "bg-white shadow" : "text-gray-600 hover:bg-white/[0.12] hover:text-gray-800"
                         }`}
                 >
-                    Roles & Permissions
+                    Roles
+                </button>
+                <button
+                    onClick={() => setActiveTab("users")}
+                    className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-gray-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === "users" ? "bg-white shadow" : "text-gray-600 hover:bg-white/[0.12] hover:text-gray-800"
+                        }`}
+                >
+                    Users & Access
                 </button>
             </div>
 
@@ -217,6 +221,8 @@ export default function SettingsPage() {
                 </div>
             ) : activeTab === "roles" ? (
                 <RolesTab />
+            ) : activeTab === "users" ? (
+                <UsersTab />
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -240,6 +246,18 @@ export default function SettingsPage() {
                                 />
                             </div>
                         </div >
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Business Name (for Vendors)</label>
+                            <input
+                                type="text"
+                                value={profileForm.business_name}
+                                onChange={(e) => setProfileForm({ ...profileForm, business_name: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                placeholder="Your business or vendor identity"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">This name will be used for your product collections and tags.</p>
+                        </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>

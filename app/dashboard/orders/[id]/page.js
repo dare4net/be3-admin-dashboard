@@ -129,8 +129,12 @@ export default function OrderDetailsPage() {
                         <div className="divide-y divide-gray-100">
                             {items.map((item) => (
                                 <div key={item.id} className="p-6 flex items-start gap-4">
-                                    <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xs">
-                                        Img
+                                    <div className="w-16 h-16 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 text-xs overflow-hidden border border-gray-100">
+                                        {item.image_url ? (
+                                            <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Package className="w-6 h-6 opacity-20" />
+                                        )}
                                     </div>
                                     <div className="flex-1">
                                         <h3 className="font-medium text-gray-900">{item.product_name}</h3>
