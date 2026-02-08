@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2 } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -45,6 +45,12 @@ const navigation = [
         relatedPaths: ['/dashboard/orders', '/dashboard/customers'],
         requiredPermissions: ["orders.view", "customers.view"], // Any of these
         hideForVendor: true // Hide the grouped "Sales" for vendors
+    },
+    {
+        name: "Analytics",
+        href: "/dashboard/analytics",
+        icon: BarChart3,
+        requiredPermission: "admin.access"
     },
     {
         name: "Storefront",
