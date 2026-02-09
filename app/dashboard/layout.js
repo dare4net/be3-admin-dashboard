@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2, BarChart3, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -58,6 +58,12 @@ const navigation = [
         icon: Paintbrush,
         relatedPaths: ['/dashboard/menus'],
         requiredPermissions: ["pagebuilder.view", "pages.view", "layouts.view", "themes.view", "banners.view"] // Any
+    },
+    {
+        name: "Chat",
+        href: "/dashboard/chat",
+        icon: MessageSquare,
+        requiredPermission: "chat.access" // Assuming a permission for chat access
     },
     {
         name: "Settings",
