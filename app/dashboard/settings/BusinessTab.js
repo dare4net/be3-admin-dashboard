@@ -4,6 +4,7 @@ import { useState } from "react";
 import api from "@/lib/axios";
 import { Save, Loader2, Building2 } from "lucide-react";
 import ImageUploader from "@/components/config/ImageUploader";
+import LocationManagement from "./LocationManagement";
 
 export default function BusinessTab({ user, onUpdate }) {
     const [saving, setSaving] = useState(false);
@@ -138,7 +139,11 @@ export default function BusinessTab({ user, onUpdate }) {
                         Save Business Settings
                     </button>
                 </div>
-            </form>
-        </div>
+            </form >
+
+            {/* Location Management Section - Outside Main Form */}
+            < LocationManagement userId={user?.id} />
+
+        </div >
     );
 }
