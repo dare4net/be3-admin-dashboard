@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/axios";
-import { MapPin, Plus, Trash2, Star, Loader2, Globe, Map } from "lucide-react";
+import { MapPin, Plus, Trash2, Star, Loader2, Globe, Map, ChevronDown, ChevronUp, Edit3 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function LocationManagement({ userId }) {
     const [locations, setLocations] = useState([]);
@@ -92,6 +93,7 @@ export default function LocationManagement({ userId }) {
             is_primary: location.is_primary
         });
         setShowForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const resetForm = () => {
@@ -111,249 +113,233 @@ export default function LocationManagement({ userId }) {
 
     const formatLocation = (location) => {
         switch (location.scope) {
-            case "worldwide":
-                return "Worldwide";
-            case "continent":
-                return location.continent || "Continental";
-            case "country":
-                return location.country || "Country-wide";
-            case "state":
-                return `${location.state}${location.country ? ', ' + location.country : ''}`;
-            case "city":
-                return `${location.city}${location.state ? ', ' + location.state : ''}${location.country ? ', ' + location.country : ''}`;
-            case "specific":
-                return location.city && location.state
-                    ? `${location.city}, ${location.state}`
-                    : location.address || "Specific Location";
-            default:
-                return "Location";
+            case "worldwide": return "Worldwide";
+            case "continent": return location.continent || "Continental";
+            case "country": return location.country || "Country-wide";
+            case "state": return `${location.state}${location.country ? ', ' + location.country : ''}`;
+            case "city": return `${location.city}${location.state ? ', ' + location.state : ''}${location.country ? ', ' + location.country : ''}`;
+            case "specific": return location.address || location.city || "Specific Location";
+            default: return "Location";
         }
     };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <div className="flex items-center justify-center p-12 grayscale opacity-50">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
         );
     }
 
     return (
-        <div className="border-t border-gray-100 pt-6 mt-6">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-md font-semibold text-gray-900 flex items-center gap-2">
+        <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
                     <MapPin className="w-5 h-5 text-blue-600" />
-                    Business Locations
-                </h3>
+                    <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Operational Presence</h2>
+                </div>
                 {!showForm && (
                     <button
                         onClick={() => setShowForm(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-none"
                     >
                         <Plus className="w-4 h-4" />
-                        Add Location
+                        Provision Node
                     </button>
                 )}
             </div>
 
-            {/* Location Form */}
-            {showForm && (
-                <form onSubmit={handleSubmit} className="bg-gray-50 rounded-lg p-4 mb-4 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Scope
-                        </label>
-                        <select
-                            value={formData.scope}
-                            onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                            required
-                        >
-                            <option value="worldwide">Worldwide</option>
-                            <option value="continent">Continent</option>
-                            <option value="country">Country</option>
-                            <option value="state">State/Province</option>
-                            <option value="city">City</option>
-                            <option value="specific">Specific Address</option>
-                        </select>
-                    </div>
+            <div className="p-6 space-y-6">
+                {/* Form Overlay-like section */}
+                {showForm && (
+                    <div className="bg-gray-50 rounded-lg border border-gray-100 p-6 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">
+                                {editingId ? "Update Location Context" : "Register New Point"}
+                            </h3>
+                            <button onClick={resetForm} className="text-gray-400 hover:text-gray-900 transition-colors">
+                                <Plus className="w-4 h-4 rotate-45" />
+                            </button>
+                        </div>
 
-                    {formData.scope !== "worldwide" && (
-                        <>
-                            {["continent", "country", "state", "city", "specific"].includes(formData.scope) && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.country}
-                                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="e.g., United States"
-                                        required={formData.scope !== "continent"}
-                                    />
-                                </div>
-                            )}
-
-                            {["state", "city", "specific"].includes(formData.scope) && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        State/Province
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.state}
-                                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="e.g., California"
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Visibility Scope</label>
+                                    <select
+                                        value={formData.scope}
+                                        onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none"
                                         required
-                                    />
+                                    >
+                                        <option value="worldwide">Worldwide</option>
+                                        <option value="continent">Continent</option>
+                                        <option value="country">Country</option>
+                                        <option value="state">State/Province</option>
+                                        <option value="city">City</option>
+                                        <option value="specific">Specific Address</option>
+                                    </select>
                                 </div>
-                            )}
 
-                            {["city", "specific"].includes(formData.scope) && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        City
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.city}
-                                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="e.g., Los Angeles"
-                                        required
-                                    />
-                                </div>
-                            )}
+                                {formData.scope !== "worldwide" && (
+                                    <>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Country Domain</label>
+                                            <input
+                                                type="text"
+                                                value={formData.country}
+                                                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                placeholder="e.g. Nigeria"
+                                                required={formData.scope !== "continent"}
+                                            />
+                                        </div>
 
-                            {formData.scope === "specific" && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Street Address
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.address}
-                                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                            placeholder="123 Main Street"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Postal Code
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.postal_code}
-                                            onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                            placeholder="90001"
-                                        />
-                                    </div>
-                                </>
-                            )}
-                        </>
-                    )}
+                                        {["state", "city", "specific"].includes(formData.scope) && (
+                                            <div>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Region / State</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.state}
+                                                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-white border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                    placeholder="e.g. Lagos"
+                                                    required
+                                                />
+                                            </div>
+                                        )}
 
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            id="is_primary"
-                            checked={formData.is_primary}
-                            onChange={(e) => setFormData({ ...formData, is_primary: e.target.checked })}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                        />
-                        <label htmlFor="is_primary" className="text-sm text-gray-700">
-                            Set as primary location (Ships From address)
-                        </label>
-                    </div>
+                                        {["city", "specific"].includes(formData.scope) && (
+                                            <div>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">City Identity</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.city}
+                                                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-white border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                    placeholder="e.g. Ikeja"
+                                                    required
+                                                />
+                                            </div>
+                                        )}
 
-                    <div className="flex gap-2 justify-end">
-                        <button
-                            type="button"
-                            onClick={resetForm}
-                            className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                        >
-                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                            {editingId ? "Update" : "Add"} Location
-                        </button>
-                    </div>
-                </form>
-            )}
-
-            {/* Locations List */}
-            <div className="space-y-2">
-                {locations.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                        <Map className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                        <p className="text-sm">No locations added yet</p>
-                    </div>
-                ) : (
-                    locations.map((location) => (
-                        <div
-                            key={location.id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                {location.scope === "worldwide" ? (
-                                    <Globe className="w-5 h-5 text-blue-600" />
-                                ) : (
-                                    <MapPin className="w-5 h-5 text-gray-600" />
+                                        {formData.scope === "specific" && (
+                                            <div className="col-span-1 md:col-span-2 space-y-6">
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Physical Address</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.address}
+                                                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                                        className="w-full px-4 py-3 bg-white border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                        placeholder="45 Corporate Way..."
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Postal Index</label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.postal_code}
+                                                        onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
+                                                        className="w-full px-4 py-3 bg-white border border-gray-100 rounded-lg text-sm font-mono focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                        placeholder="101233"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
+                            </div>
+
+                            <div className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-lg">
+                                <input
+                                    type="checkbox"
+                                    id="is_primary"
+                                    checked={formData.is_primary}
+                                    onChange={(e) => setFormData({ ...formData, is_primary: e.target.checked })}
+                                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 transition-all cursor-pointer"
+                                />
+                                <label htmlFor="is_primary" className="text-[10px] font-black text-gray-900 uppercase tracking-widest cursor-pointer select-none">
+                                    Primary Operational Hub (Ships From)
+                                </label>
+                            </div>
+
+                            <div className="flex gap-3 justify-end pt-4">
+                                <button type="button" onClick={resetForm} className="px-6 py-2.5 bg-white border border-gray-100 text-gray-400 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">
+                                    Discard
+                                </button>
+                                <button type="submit" disabled={saving} className="flex items-center gap-2 px-8 py-2.5 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all shadow-none">
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                                    {editingId ? "Update Node" : "Submit Node"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
+                {/* Locations Grid/List */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {locations.length === 0 ? (
+                        <div className="col-span-full py-12 text-center bg-gray-50/50 border border-dashed border-gray-100 rounded-lg">
+                            <Map className="w-12 h-12 mx-auto mb-4 text-gray-200" />
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No Operational Nodes Mapped</p>
+                        </div>
+                    ) : (
+                        locations.map((loc) => (
+                            <div
+                                key={loc.id}
+                                className={cn(
+                                    "p-5 rounded-lg border transition-all flex flex-col justify-between min-h-[140px]",
+                                    loc.is_primary ? "bg-blue-50/50 border-blue-100" : "bg-white border-gray-100 hover:border-blue-200"
+                                )}
+                            >
                                 <div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium text-gray-900">{formatLocation(location)}</span>
-                                        {location.is_primary && (
-                                            <span
-                                                className="flex items-center gap-1 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full cursor-help"
-                                                title="This location is used as the 'Ships From' address on product pages"
-                                            >
-                                                <Star className="w-3 h-3 fill-current" />
-                                                Primary (Ships From)
+                                    <div className="flex items-start justify-between">
+                                        <div className={cn("p-2 rounded-lg", loc.is_primary ? "bg-blue-100 text-blue-600" : "bg-gray-50 text-gray-400")}>
+                                            {loc.scope === "worldwide" ? <Globe className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
+                                        </div>
+                                        {loc.is_primary && (
+                                            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-600 text-[8px] font-black text-white uppercase tracking-widest rounded-full">
+                                                <Star className="w-2.5 h-2.5 fill-current" />
+                                                Primary Hub
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-xs text-gray-500 capitalize">{location.scope}</span>
+                                    <div className="mt-4">
+                                        <h4 className="font-black text-gray-900 text-sm leading-tight uppercase tracking-tight">{formatLocation(loc)}</h4>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1 opacity-60">Status: {loc.scope}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 flex items-center justify-end gap-1 pt-4 border-t border-gray-50/50">
+                                    {!loc.is_primary && (
+                                        <button
+                                            onClick={() => handleSetPrimary(loc.id)}
+                                            className="p-2 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                            title="Promote to Primary"
+                                        >
+                                            <Star className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleEdit(loc)}
+                                        className="p-2 text-gray-300 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all"
+                                        title="Edit Node"
+                                    >
+                                        <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(loc.id)}
+                                        className="p-2 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                        title="Sever Link"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                {!location.is_primary && (
-                                    <button
-                                        onClick={() => handleSetPrimary(location.id)}
-                                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                        title="Set as primary"
-                                    >
-                                        <Star className="w-4 h-4" />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => handleEdit(location)}
-                                    className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(location.id)}
-                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                    title="Delete"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                )}
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import { Loader2, Plus, Search, Shield, Trash2, Edit, Save, X, Check } from "lucide-react";
+import { Loader2, Plus, Search, Shield, Trash2, Edit, Save, X, Check, UserCircle, Globe, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CategorySelector from "@/components/CategorySelector";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export default function UsersTab() {
     const [users, setUsers] = useState([]);
@@ -17,8 +18,8 @@ export default function UsersTab() {
     // Edit Modal State
     const [editingUser, setEditingUser] = useState(null);
     const [editForm, setEditForm] = useState({
-        roles: [], // Array of role objects
-        categoryIds: [], // Array of category IDs
+        roles: [],
+        categoryIds: [],
         business_name: ""
     });
     const [saving, setSaving] = useState(false);
@@ -31,12 +32,12 @@ export default function UsersTab() {
     const fetchData = async () => {
         try {
             const [usersRes, rolesRes] = await Promise.all([
-                api.get("/users"), // Assuming this endpoint exists, or I need to create it
+                api.get("/users"),
                 api.get("/roles")
             ]);
 
-            if (usersRes.data.success) setUsers(usersRes.data.users);
-            if (rolesRes.data.success) setRoles(rolesRes.data.roles);
+            if (usersRes.data.success) setUsers(usersRes.data.users || []);
+            if (rolesRes.data.success) setRoles(rolesRes.data.roles || []);
         } catch (error) {
             console.error("Failed to fetch data:", error);
         } finally {
@@ -47,11 +48,9 @@ export default function UsersTab() {
     const handleEditClick = async (user) => {
         setEditingUser(user);
         setIsEditOpen(true);
-        setSaving(true); // Show loading while fetching details
+        setSaving(true);
 
         try {
-            // Fetch detailed permissions/categories for this user
-            // We fetch user details from /auth/users/:id because it accurately returns assigned roles
             const [userRes, permRes] = await Promise.all([
                 api.get(`/auth/users/${user.id}`),
                 api.get(`/api/permissions/user/${user.id}`)
@@ -64,8 +63,7 @@ export default function UsersTab() {
             });
         } catch (error) {
             console.error("Failed to fetch user permissions:", error);
-            // Fallback to basic info if API fails
-            setEditForm({ roles: [], categoryIds: [] });
+            setEditForm({ roles: [], categoryIds: [], business_name: "" });
         } finally {
             setSaving(false);
         }
@@ -87,17 +85,6 @@ export default function UsersTab() {
         setSaving(true);
 
         try {
-            // 1. Update Roles
-            // Calculate changes (simple diffing logic could be added here, but for now we reconstruct)
-            // Actually API likely needs add/remove logic or a sync endpoint. 
-            // My Roles API currently only supports assign/remove one by one. 
-            // Let's iterate for now or I should have added a sync endpoint. 
-            // For now, I'll stick to just Category Permissions as that's the main request, 
-            // AND I'll try to sync roles if possible. 
-            // Actually, let's focus on the Category Permission since that was the blocked user request.
-            // Role management is complicated without a sync endpoint. 
-            // Wait, I can use the assign/remove endpoints.
-
             const originalRoles = (await api.get(`/api/permissions/user/${editingUser.id}`)).data.roles || [];
             const originalRoleIds = originalRoles.map(r => r.id);
             const newRoleIds = editForm.roles.map(r => r.id);
@@ -112,19 +99,16 @@ export default function UsersTab() {
                 await api.delete(`/roles/${roleId}/users/${editingUser.id}`);
             }
 
-            // 1.5 Update Business Name (if changed)
             if (editForm.business_name !== editingUser.business_name) {
                 await api.patch(`/auth/users/${editingUser.id}`, {
                     business_name: editForm.business_name
                 });
             }
 
-            // 2. Update Categories
             await api.post(`/api/permissions/user/${editingUser.id}/categories`, {
                 categoryIds: editForm.categoryIds
             });
 
-            // Refresh list
             await fetchData();
             setIsEditOpen(false);
             setEditingUser(null);
@@ -141,177 +125,207 @@ export default function UsersTab() {
         u.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+    if (loading) {
+        return (
+            <div className="flex justify-center p-12 grayscale opacity-50">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div className="relative w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <div className="space-y-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-lg border border-gray-100 shadow-none">
+                <div className="relative w-full md:w-80">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search users..."
+                        placeholder="SEARCH STAFF REGISTRY..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-300"
                     />
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    <Plus className="w-4 h-4" />
-                    Invite User
+                <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-none w-full md:w-auto justify-center">
+                    <Plus className="w-4 h-4" /> Provision Access
                 </button>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-700 font-medium border-b border-gray-200">
+            <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-100">
+                    <thead className="bg-gray-50/50">
                         <tr>
-                            <th className="px-6 py-3">User</th>
-                            <th className="px-6 py-3">Roles</th>
-                            <th className="px-6 py-3">Status</th>
-                            <th className="px-6 py-3 text-right">Actions</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Personnel Identity</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Access Profiles</th>
+                            <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Audit Status</th>
+                            <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Operations</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {filteredUsers.map(user => (
-                            <tr key={user.id} className="hover:bg-gray-50/50">
-                                <td className="px-6 py-4">
-                                    <div className="font-medium text-gray-900">{user.first_name} {user.last_name}</div>
-                                    <div className="text-gray-500 text-xs">{user.email}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex flex-wrap gap-1">
-                                        {/* We don't have roles in the user list API yet typically, but let's assume or fetch */}
-                                        {/* For now just a placeholder or needing a better fetch */}
-                                        <Badge variant="outline" className="bg-gray-50">View to see roles</Badge>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
-                                        }`}>
-                                        {user.status || 'Active'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <button
-                                        onClick={() => handleEditClick(user)}
-                                        className="text-blue-600 hover:text-blue-800 font-medium text-sm inline-flex items-center gap-1"
-                                    >
-                                        <Shield className="w-3 h-3" />
-                                        Manage Access
-                                    </button>
+                    <tbody className="divide-y divide-gray-50">
+                        {filteredUsers.length === 0 ? (
+                            <tr>
+                                <td colSpan="4" className="px-6 py-12 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest">
+                                    No Personnel Matched Search Params
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            filteredUsers.map(user => (
+                                <tr key={user.id} className="hover:bg-gray-50/30 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-gray-50 rounded-lg text-gray-400">
+                                                <UserCircle className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <div className="text-[11px] font-black text-gray-900 uppercase tracking-tight">{user.first_name} {user.last_name}</div>
+                                                <div className="text-[10px] font-mono text-gray-400 lowercase">{user.email}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex flex-wrap gap-1">
+                                            {/* Badge styling matches Be3 standard */}
+                                            <span className="px-2 py-0.5 bg-gray-50 text-[9px] font-black text-gray-400 uppercase tracking-tighter rounded-full border border-gray-100">
+                                                Standard Access
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={cn(
+                                            "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest",
+                                            user.status === 'active' || !user.status ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
+                                        )}>
+                                            {user.status || 'Active'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button
+                                            onClick={() => handleEditClick(user)}
+                                            className="inline-flex items-center gap-2 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                        >
+                                            <Shield className="w-4 h-4" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
 
-            {/* Edit User Modal */}
+            {/* Manage Access Dialog with Be3 Aesthetic */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-                    <div className="p-6 border-b">
+                <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white shadow-none border border-gray-200">
+                    <div className="p-6 border-b border-gray-50 bg-gray-50/30">
                         <DialogHeader>
-                            <DialogTitle>Manage Access: {editingUser?.first_name} {editingUser?.last_name}</DialogTitle>
-                            <DialogDescription>
-                                Configure roles and data access permissions for this user.
+                            <div className="flex items-center gap-3">
+                                <Shield className="w-5 h-5 text-blue-600" />
+                                <DialogTitle className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">
+                                    Access Protocol: {editingUser?.first_name} {editingUser?.last_name}
+                                </DialogTitle>
+                            </div>
+                            <DialogDescription className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mt-1">
+                                Define authorization scopes and data visibility boundaries.
                             </DialogDescription>
                         </DialogHeader>
                     </div>
 
-                    <ScrollArea className="flex-1 p-6 overflow-y-auto">
+                    <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
                         {saving && editForm.roles.length === 0 && !editForm.categoryIds.length ? (
-                            <div className="py-8 flex justify-center"><Loader2 className="animate-spin" /></div>
+                            <div className="py-12 flex justify-center grayscale opacity-50">
+                                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                            </div>
                         ) : (
-                            <div className="space-y-6">
+                            <div className="space-y-8">
                                 {/* Roles Section */}
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-sm font-medium text-gray-900">Assigned Roles</h3>
+                                <div className="space-y-6">
+                                    <div className="space-y-4">
+                                        <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] border-b border-gray-50 pb-2">Identification Context</h3>
+                                        <div className="bg-blue-50/30 p-5 rounded-lg border border-blue-100">
+                                            <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">
+                                                Business Entity Association (For Vendors)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editForm.business_name}
+                                                onChange={(e) => setEditForm({ ...editForm, business_name: e.target.value })}
+                                                className="w-full px-4 py-3 bg-white border border-blue-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-50 outline-none transition-all placeholder:text-blue-200"
+                                                placeholder="e.g. Acme Logistics"
+                                            />
+                                            <p className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter mt-2 italic">
+                                                Tags personnel metadata for multi-tenant data isolation.
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    {/* Business Name Field */}
-                                    <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mb-4">
-                                        <label className="block text-sm font-medium text-blue-900 mb-1">
-                                            Business Name (for Vendors)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={editForm.business_name}
-                                            onChange={(e) => setEditForm({ ...editForm, business_name: e.target.value })}
-                                            className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                                            placeholder="Enter vendor business name"
-                                        />
-                                        <p className="text-[10px] text-blue-700 mt-1 italic">
-                                            If this user is a Vendor, their products will be tagged with this name.
-                                        </p>
-                                    </div>
-
-                                    {/* Current Roles Display */}
-                                    <div className="flex flex-wrap gap-2 mb-2">
-                                        {editForm.roles.length === 0 ? (
-                                            <p className="text-sm text-gray-500 italic">No roles assigned</p>
-                                        ) : (
-                                            editForm.roles.map(role => (
-                                                <Badge key={role.id} variant="secondary" className="px-2 py-1 flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-100">
-                                                    {role.name}
-                                                    <X
-                                                        className="w-3 h-3 cursor-pointer hover:text-red-600"
-                                                        onClick={() => handleRoleToggle(role)}
-                                                    />
-                                                </Badge>
-                                            ))
-                                        )}
-                                    </div>
-
-                                    <div className="pt-2">
-                                        <p className="text-xs text-gray-500 mb-2">Available Roles (Click to add):</p>
+                                    <div className="space-y-4">
+                                        <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] border-b border-gray-50 pb-2">Assigned Access Profiles</h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {roles.filter(r => !editForm.roles.some(ur => ur.id === r.id)).map(role => (
-                                                <div
-                                                    key={role.id}
-                                                    onClick={() => handleRoleToggle(role)}
-                                                    className="cursor-pointer px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center gap-2"
-                                                >
-                                                    <Plus className="w-3 h-3" />
-                                                    {role.name}
-                                                </div>
-                                            ))}
+                                            {editForm.roles.length === 0 ? (
+                                                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">No Profiles Allocated</p>
+                                            ) : (
+                                                editForm.roles.map(role => (
+                                                    <span key={role.id} className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-[10px] font-black text-white uppercase tracking-widest rounded-lg">
+                                                        {role.name}
+                                                        <X
+                                                            className="w-3.5 h-3.5 cursor-pointer hover:text-blue-200 transition-colors"
+                                                            onClick={() => handleRoleToggle(role)}
+                                                        />
+                                                    </span>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="pt-4">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Available Profile Library:</p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {roles.filter(r => !editForm.roles.some(ur => ur.id === r.id)).map(role => (
+                                                    <div
+                                                        key={role.id}
+                                                        onClick={() => handleRoleToggle(role)}
+                                                        className="group cursor-pointer p-3 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-between hover:border-blue-200 hover:bg-white transition-all"
+                                                    >
+                                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-tight group-hover:text-blue-600 transition-colors">{role.name}</span>
+                                                        <Plus className="w-3 h-3 text-gray-300 group-hover:text-blue-600 transition-colors" />
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="border-t border-gray-100 my-4"></div>
-
                                 {/* Category Access Section */}
-                                <div className="space-y-3 pb-4">
-                                    <h3 className="text-sm font-medium text-gray-900">Category Access</h3>
-                                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                <div className="space-y-4">
+                                    <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] border-b border-gray-50 pb-2">Data Visibility Boundary</h3>
+                                    <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
                                         <CategorySelector
                                             selectedIds={editForm.categoryIds}
                                             onChange={(ids) => setEditForm(prev => ({ ...prev, categoryIds: ids }))}
                                         />
                                     </div>
+                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter text-center">
+                                        Limits product visibility in the catalog to selected namespaces.
+                                    </p>
                                 </div>
                             </div>
                         )}
-                    </ScrollArea>
+                    </div>
 
-                    <div className="p-6 border-t bg-gray-50">
-                        <DialogFooter>
+                    <div className="p-6 border-t border-gray-100 bg-gray-50">
+                        <DialogFooter className="flex flex-row justify-end gap-3">
                             <button
                                 onClick={() => setIsEditOpen(false)}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                                className="px-6 py-2.5 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-all"
                             >
-                                Cancel
+                                Discard
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-10 py-2.5 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50 transition-all shadow-none"
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Save Changes
+                                Commit Changes
                             </button>
                         </DialogFooter>
                     </div>

@@ -17,7 +17,9 @@ import {
     Search,
     ShoppingBag,
     LayoutDashboard,
-    BarChart3
+    BarChart3,
+    RefreshCw,
+    Clock
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { useAuth } from '@/components/providers/AuthContext';
@@ -29,9 +31,16 @@ import SurfaceHeatmap from '@/components/analytics/SurfaceHeatmap';
 export default function AnalyticsDashboard() {
     const { user } = useAuth();
     const [period, setPeriod] = useState('30D');
+    const [customRange, setCustomRange] = useState({
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0]
+    });
     const [loading, setLoading] = useState(true);
+    const [meta, setMeta] = useState({ source: 'cache', updated_at: null });
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [stats, setStats] = useState([]);
     const [surfaces, setSurfaces] = useState([]);
+    const [chartMetric, setChartMetric] = useState('orders');
     const [summary, setSummary] = useState({
         totalImpressions: 0,
         totalPageViews: 0,
@@ -41,46 +50,59 @@ export default function AnalyticsDashboard() {
         trends: []
     });
 
-    useEffect(() => {
-        const loadData = async () => {
-            if (!user?.tenant_id) return;
-            setLoading(true);
-            try {
-                // Fetch stats and surfaces in parallel
-                const [statsData, surfacesData, dashboardSummary] = await Promise.all([
-                    AnalyticsService.fetchStats({ period }),
-                    api.get('/analytics/surfaces', { params: { period } }),
-                    AnalyticsService.fetchDashboardSummary({ period })
-                ]);
+    const loadData = async (forceRefresh = false) => {
+        if (!user?.tenant_id) return;
+        setLoading(true);
+        if (forceRefresh) setIsRefreshing(true);
+        try {
+            const params = {
+                period,
+                ...(period === 'Custom' ? customRange : {}),
+                ...(forceRefresh ? { refresh: true } : {})
+            };
 
-                setStats(statsData.data || []);
-                setSurfaces(surfacesData.data?.data || []);
+            // Fetch stats and surfaces in parallel
+            const [statsData, surfacesData, dashboardSummary] = await Promise.all([
+                AnalyticsService.fetchStats(params),
+                api.get('/analytics/surfaces', { params }),
+                AnalyticsService.fetchDashboardSummary(params)
+            ]);
 
-                const currentStats = statsData.data || [];
-                const totals = dashboardSummary?.totals || {};
+            setStats(statsData.data || []);
+            setSurfaces(surfacesData.data?.data || []);
 
-                // Use backend totals if available, otherwise fallback to stats calculation
-                const totalImpressions = totals.impressions !== undefined ? totals.impressions : currentStats.reduce((sum, s) => sum + parseInt(s.impressions || 0), 0);
-                const totalPageViews = totals.page_views !== undefined ? totals.page_views : currentStats.reduce((sum, s) => sum + parseInt(s.page_views || 0), 0);
-                const totalClicks = totals.clicks !== undefined ? totals.clicks : currentStats.reduce((sum, s) => sum + parseInt(s.clicks || 0), 0);
-
-                setSummary({
-                    totalImpressions,
-                    totalPageViews,
-                    totalClicks,
-                    avgCtr: totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : 0,
-                    newCustomers: totals.customers || 0,
-                    trends: dashboardSummary?.chart_data || []
-                });
-            } catch (error) {
-                console.error('[Analytics] Load failed:', error);
-            } finally {
-                setLoading(false);
+            // Capture meta from one of the responses (e.g., dashboardSummary)
+            if (dashboardSummary?._meta) {
+                setMeta(dashboardSummary._meta);
             }
-        };
 
+            const currentStats = statsData.data || [];
+            const totals = dashboardSummary?.totals || {};
+
+            // Use backend totals if available, otherwise fallback to stats calculation
+            const totalImpressions = totals.impressions !== undefined ? totals.impressions : currentStats.reduce((sum, s) => sum + parseInt(s.impressions || 0), 0);
+            const totalPageViews = totals.page_views !== undefined ? totals.page_views : currentStats.reduce((sum, s) => sum + parseInt(s.page_views || 0), 0);
+            const totalClicks = totals.clicks !== undefined ? totals.clicks : currentStats.reduce((sum, s) => sum + parseInt(s.clicks || 0), 0);
+
+            setSummary({
+                totalImpressions,
+                totalPageViews,
+                totalClicks,
+                avgCtr: totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : 0,
+                newCustomers: totals.customers || 0,
+                trends: dashboardSummary?.chart_data || []
+            });
+        } catch (error) {
+            console.error('[Analytics] Load failed:', error);
+        } finally {
+            setLoading(false);
+            setIsRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
         loadData();
-    }, [user?.tenant_id, period]);
+    }, [user?.tenant_id, period, customRange.startDate, customRange.endDate]);
 
     const [selectedTab, setSelectedTab] = useState(null);
 
@@ -102,32 +124,71 @@ export default function AnalyticsDashboard() {
     }, [stats, selectedTab]);
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+        <div className="w-full space-y-4 animate-in fade-in duration-500 pb-20">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-lg shadow-none border border-gray-100">
                 <div>
                     <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
                         <BarChart3 className="w-8 h-8 text-blue-600" />
-                        Vendor Insights & Performance
+                        Insights & Performance
                     </h1>
-                    <p className="text-gray-500 font-medium text-sm">Real-time engagement analysis across your storefront</p>
+                    <div className="flex items-center gap-3 mt-1.5">
+                        {meta.updated_at && (
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 border border-gray-100 rounded text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                    <Clock className="w-3 h-3" />
+                                    Updated {new Date(meta.updated_at).toLocaleTimeString()}
+                                    <span className="mx-1 opacity-30">|</span>
+                                    {meta.source === 'cache' ? 'Cached' : meta.source === 'stale' ? 'Updating...' : 'Fresh'}
+                                </div>
+                                <button
+                                    onClick={() => loadData(true)}
+                                    disabled={loading || isRefreshing}
+                                    title="Refresh Analytics"
+                                    className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-blue-600 hover:border-blue-100 transition-all disabled:opacity-50"
+                                >
+                                    <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex p-1 bg-gray-100 rounded-xl">
-                    {['Today', '7D', '30D', '90D'].map((p) => (
-                        <button
-                            key={p}
-                            onClick={() => setPeriod(p)}
-                            className={cn(
-                                "px-6 py-2 rounded-lg text-sm font-bold transition-all",
-                                period === p
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-900"
-                            )}
-                        >
-                            {p}
-                        </button>
-                    ))}
+                <div className="flex flex-col md:flex-row items-center gap-4">
+                    {period === 'Custom' && (
+                        <div className="flex items-center gap-2 bg-white p-1.5 border border-gray-200 rounded-xl">
+                            <input
+                                type="date"
+                                value={customRange.startDate}
+                                onChange={(e) => setCustomRange(p => ({ ...p, startDate: e.target.value }))}
+                                className="text-[10px] font-bold text-gray-600 px-1 focus:outline-none"
+                            />
+                            <span className="text-gray-300 text-[10px]">→</span>
+                            <input
+                                type="date"
+                                value={customRange.endDate}
+                                onChange={(e) => setCustomRange(p => ({ ...p, endDate: e.target.value }))}
+                                className="text-[10px] font-bold text-gray-600 px-1 focus:outline-none"
+                            />
+                        </div>
+                    )}
+
+                    <div className="flex p-1 bg-gray-100 rounded-xl overflow-x-auto">
+                        {['Today', '7D', 'This Month', 'Custom'].map((p) => (
+                            <button
+                                key={p}
+                                onClick={() => setPeriod(p)}
+                                className={cn(
+                                    "px-4 py-2 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap",
+                                    period === p
+                                        ? "bg-white text-blue-600 shadow-sm"
+                                        : "text-gray-500 hover:text-gray-900"
+                                )}
+                            >
+                                {p}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -170,23 +231,60 @@ export default function AnalyticsDashboard() {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Engagement Trends */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <div className="flex items-center justify-between mb-8">
+                <div className="lg:col-span-2 bg-white p-5 rounded-lg shadow-none border border-gray-100">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <div>
                             <h3 className="font-bold text-gray-900">Engagement Trends</h3>
-                            <p className="text-xs text-gray-400 font-medium">Daily order and traffic volume</p>
+                            <p className="text-xs text-gray-400 font-medium">Daily performance analysis</p>
                         </div>
-                        <ShoppingBag className="w-5 h-5 text-gray-300" />
+
+                        <div className="flex p-1 bg-gray-50 rounded-lg self-start">
+                            {[
+                                { id: 'orders', label: 'Orders', color: '#3b82f6' },
+                                { id: 'page_views', label: 'Views', color: '#8b5cf6' },
+                                { id: 'impressions', label: 'Impressions', color: '#a855f7' },
+                                { id: 'clicks', label: 'Clicks', color: '#10b981' }
+                            ].map((m) => (
+                                <button
+                                    key={m.id}
+                                    onClick={() => setChartMetric(m.id)}
+                                    className={cn(
+                                        "px-3 py-1 rounded-md text-[10px] font-bold transition-all",
+                                        chartMetric === m.id
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-400 hover:text-gray-600"
+                                    )}
+                                >
+                                    {m.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="h-80 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={summary.trends}>
                                 <defs>
-                                    <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                    <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
+                                        <stop
+                                            offset="5%"
+                                            stopColor={
+                                                chartMetric === 'orders' ? '#3b82f6' :
+                                                    chartMetric === 'page_views' ? '#8b5cf6' :
+                                                        chartMetric === 'clicks' ? '#10b981' : '#a855f7'
+                                            }
+                                            stopOpacity={0.1}
+                                        />
+                                        <stop
+                                            offset="95%"
+                                            stopColor={
+                                                chartMetric === 'orders' ? '#3b82f6' :
+                                                    chartMetric === 'page_views' ? '#8b5cf6' :
+                                                        chartMetric === 'clicks' ? '#10b981' : '#a855f7'
+                                            }
+                                            stopOpacity={0}
+                                        />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -194,20 +292,32 @@ export default function AnalyticsDashboard() {
                                     dataKey="date"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 12, fill: '#94a3b8' }}
+                                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }}
                                     tickFormatter={(val) => new Date(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                    contentStyle={{
+                                        borderRadius: '16px',
+                                        border: 'none',
+                                        boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                                        padding: '12px'
+                                    }}
+                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                    labelStyle={{ fontSize: '10px', color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}
                                 />
                                 <Area
                                     type="monotone"
-                                    dataKey="order_count"
-                                    stroke="#3b82f6"
-                                    strokeWidth={3}
+                                    dataKey={chartMetric === 'orders' ? 'order_count' : chartMetric}
+                                    name={chartMetric.replace('_', ' ').toUpperCase()}
+                                    stroke={
+                                        chartMetric === 'orders' ? '#3b82f6' :
+                                            chartMetric === 'page_views' ? '#8b5cf6' :
+                                                chartMetric === 'clicks' ? '#10b981' : '#a855f7'
+                                    }
+                                    strokeWidth={4}
                                     fillOpacity={1}
-                                    fill="url(#colorOrders)"
+                                    fill="url(#colorMetric)"
                                 />
                             </AreaChart>
                         </ResponsiveContainer>

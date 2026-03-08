@@ -4,7 +4,7 @@ import {
     Video, ShoppingBag, LayoutTemplate, Star, Percent,
     CreditCard, Layout, Heading, Divide, GripHorizontal, Code,
     Clock, Sparkles, DollarSign, ChevronsUpDown, FolderKanban, Megaphone,
-    Search, SlidersHorizontal, Grid, ChevronRight, ChevronDown, Eye, EyeOff, Edit2, Trash2, Copy
+    Search, SlidersHorizontal, Grid, ChevronRight, ChevronDown, Eye, EyeOff, Edit2, Trash2, Copy, X, MoreVertical, ArrowUp, ArrowDown
 } from "lucide-react";
 
 export const WIDGET_GROUPS = [
@@ -85,8 +85,9 @@ export const WIDGET_GROUPS = [
     }
 ];
 
-function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onDuplicate, onToggleVisibility, dirtyWidgetIds }) {
+function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onDuplicate, onToggleVisibility, onMoveWidget, dirtyWidgetIds }) {
     const [isExpanded, setIsExpanded] = useState(true);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const hasChildren = ['container', 'columns', 'grid', 'carousel_container', 'randomizer'].includes(widget.widget_type);
     const childWidgets = widgets.filter(w => w.parent_id === widget.id).sort((a, b) => a.sort_order - b.sort_order);
 
@@ -99,45 +100,149 @@ function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onDuplica
     };
 
     return (
-        <div className="flex flex-col">
+        <div className="flex flex-col relative">
             <div
-                className={`flex items-center gap-2 group p-2 hover:bg-gray-100 rounded-lg transition-colors ${!widget.is_active ? 'opacity-50' : ''}`}
+                className={`flex items-center gap-2 group p-2 hover:bg-gray-100/50 rounded-xl transition-all ${!widget.is_active ? 'opacity-40' : ''} ${isMenuOpen ? 'bg-gray-100' : ''}`}
                 style={{ paddingLeft: `${(level * 16) + 8}px` }}
             >
                 {hasChildren ? (
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="p-0.5 hover:bg-gray-200 rounded text-gray-400"
+                        className="p-1 hover:bg-gray-200 rounded-lg text-gray-400 transition-colors"
                     >
                         {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </button>
                 ) : (
-                    <div className="w-4" />
+                    <div className="w-6" />
                 )}
 
-                <div className="text-gray-400">
+                <div className="text-gray-400/80 shrink-0">
                     {findIcon(widget.widget_type)}
                 </div>
 
-                <span className="text-sm font-medium text-gray-700 truncate flex-1 flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-700 truncate flex-1 flex items-center gap-2 py-1">
                     {widget.config?.adminLabel ||
                         (typeof widget.config?.title === 'object' ? widget.config.title.text : widget.config?.title) ||
                         widget.widget_type}
                     {dirtyWidgetIds?.has(widget.id) && (
-                        <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" title="Unsaved changes" />
+                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" title="Unsaved changes" />
                     )}
                 </span>
 
-                <div className="hidden group-hover:flex items-center gap-1">
-                    <button onClick={() => onToggleVisibility(widget)} className="p-1 hover:bg-gray-200 rounded text-gray-500" title="Toggle Visibility">
-                        {widget.is_active ? <Eye size={12} /> : <EyeOff size={12} />}
-                    </button>
-                    <button onClick={() => onDuplicate(widget)} className="p-1 hover:bg-gray-100 rounded text-green-600" title="Duplicate">
-                        <Copy size={12} />
-                    </button>
-                    <button onClick={() => onEdit(widget)} className="p-1 hover:bg-gray-100 rounded text-blue-600" title="Edit">
-                        <Edit2 size={12} />
-                    </button>
+                <div className="flex items-center gap-0.5">
+                    {/* Desktop View: Horizontal Icons */}
+                    <div className="hidden md:flex items-center gap-0.5">
+                        <button
+                            onClick={() => onToggleVisibility(widget)}
+                            className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                            title={widget.is_active ? 'Hide' : 'Show'}
+                        >
+                            {widget.is_active ? <Eye size={14} /> : <EyeOff size={14} />}
+                        </button>
+                        <button
+                            onClick={() => onDuplicate(widget)}
+                            className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-green-600 transition-colors"
+                            title="Duplicate"
+                        >
+                            <Copy size={14} />
+                        </button>
+                        <button
+                            onClick={() => onEdit(widget)}
+                            className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Edit"
+                        >
+                            <Edit2 size={14} />
+                        </button>
+                        <button
+                            onClick={() => onDelete(widget.id)}
+                            className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                            title="Delete"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
+
+                    {/* Mobile View: "More" Menu */}
+                    <div className="relative md:hidden">
+                        <button
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className={`p-1.5 rounded-lg transition-all ${isMenuOpen ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+                            title="Actions"
+                        >
+                            <MoreVertical size={16} />
+                        </button>
+
+                        {isMenuOpen && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-[60]"
+                                    onClick={() => setIsMenuOpen(false)}
+                                />
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-[70] animate-in fade-in zoom-in duration-200 origin-top-right">
+                                    <div className="px-3 py-2 border-b border-gray-50 mb-1">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Widget Actions</p>
+                                    </div>
+                                    <button
+                                        onClick={() => { onToggleVisibility(widget); setIsMenuOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
+                                    >
+                                        <div className="p-1 bg-gray-50 rounded group-hover:bg-blue-50">
+                                            {widget.is_active ? <EyeOff size={12} /> : <Eye size={12} />}
+                                        </div>
+                                        <span>{widget.is_active ? 'Hide Widget' : 'Show Widget'}</span>
+                                    </button>
+                                    <div className="h-px bg-gray-50 my-1 mx-4" />
+                                    <button
+                                        onClick={() => { onMoveWidget(widget.id, 'up'); setIsMenuOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
+                                    >
+                                        <div className="p-1 bg-gray-50 rounded group-hover:bg-blue-50">
+                                            <ArrowUp size={12} />
+                                        </div>
+                                        <span>Move Up</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { onMoveWidget(widget.id, 'down'); setIsMenuOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
+                                    >
+                                        <div className="p-1 bg-gray-50 rounded group-hover:bg-blue-50">
+                                            <ArrowDown size={12} />
+                                        </div>
+                                        <span>Move Down</span>
+                                    </button>
+                                    <div className="h-px bg-gray-50 my-1 mx-4" />
+                                    <button
+                                        onClick={() => { onDuplicate(widget); setIsMenuOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-green-600 transition-colors"
+                                    >
+                                        <div className="p-1 bg-gray-50 rounded group-hover:bg-green-50">
+                                            <Copy size={12} />
+                                        </div>
+                                        <span>Duplicate</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { onEdit(widget); setIsMenuOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
+                                    >
+                                        <div className="p-1 bg-gray-50 rounded group-hover:bg-blue-50">
+                                            <Edit2 size={12} />
+                                        </div>
+                                        <span>Edit Settings</span>
+                                    </button>
+                                    <div className="h-px bg-gray-50 my-1 mx-4" />
+                                    <button
+                                        onClick={() => { onDelete(widget.id); setIsMenuOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
+                                    >
+                                        <div className="p-1 bg-red-50 rounded">
+                                            <Trash2 size={12} />
+                                        </div>
+                                        <span>Remove Widget</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -154,6 +259,7 @@ function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onDuplica
                                 onDelete={onDelete}
                                 onDuplicate={onDuplicate}
                                 onToggleVisibility={onToggleVisibility}
+                                onMoveWidget={onMoveWidget}
                                 dirtyWidgetIds={dirtyWidgetIds}
                             />
                         ))
@@ -171,11 +277,21 @@ function StructureItem({ widget, widgets, level = 0, onEdit, onDelete, onDuplica
     );
 }
 
-export default function SidebarLibrary({ onAddWidget, widgets = [], onEdit, onDelete, onDuplicate, onToggleVisibility, dirtyWidgetIds }) {
+export default function SidebarLibrary({ onAddWidget, widgets = [], onEdit, onDelete, onDuplicate, onToggleVisibility, onMoveWidget, dirtyWidgetIds, onClose }) {
     const [activeTab, setActiveTab] = useState('library'); // 'library' or 'structure'
 
     return (
-        <div className="w-80 bg-white border-r overflow-hidden flex flex-col h-full shadow-lg z-10">
+        <div className="flex flex-col h-full bg-white overflow-hidden">
+            {/* Header / Mobile Close */}
+            <div className="flex items-center justify-between px-4 py-3 border-b md:hidden">
+                <span className="text-sm font-bold text-gray-900">Widget Library</span>
+                <button
+                    onClick={onClose}
+                    className="p-1 hover:bg-gray-100 rounded-lg text-gray-500"
+                >
+                    <X size={20} />
+                </button>
+            </div>
             {/* Tabs */}
             <div className="flex border-b">
                 <button
@@ -242,6 +358,7 @@ export default function SidebarLibrary({ onAddWidget, widgets = [], onEdit, onDe
                                         onDelete={onDelete}
                                         onDuplicate={onDuplicate}
                                         onToggleVisibility={onToggleVisibility}
+                                        onMoveWidget={onMoveWidget}
                                         dirtyWidgetIds={dirtyWidgetIds}
                                     />
                                 ))}

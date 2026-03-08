@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
-import { Star, X, Folder, ChevronRight, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { Star, X, Folder, ChevronRight, ArrowLeft, Image as ImageIcon, ChevronDown, ChevronUp, Loader2, Plus, Check } from "lucide-react";
 import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 
 export default function CreateProductPage() {
@@ -15,6 +15,18 @@ export default function CreateProductPage() {
     const [step, setStep] = useState('category_selection'); // 'category_selection' | 'form'
     const [currentParentId, setCurrentParentId] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState(null);
+
+    // Collapsible sections state
+    const [expandedSections, setExpandedSections] = useState({
+        basic: true,
+        attributes: true,
+        seo: false,
+        tags: false
+    });
+
+    const toggleSection = (section) => {
+        setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
 
     const [formData, setFormData] = useState({
         name: "",
@@ -28,7 +40,6 @@ export default function CreateProductPage() {
         handle: "",
         image_url: "",
         attributes: {}, // { code: value }
-        // Comprehensive SEO Fields
         meta_description: "",
         og_title: "",
         og_description: "",
@@ -59,11 +70,8 @@ export default function CreateProductPage() {
             }
 
             try {
-                // Fetch attributes for the single selected category (which includes inherited ones)
                 const res = await api.get(`/products/categories/${selectedCategory.id}/admin`);
-
                 if (res.data.category && res.data.category.attributes) {
-                    // Only show attributes that are not explicitly ignored for this category
                     setAvailableAttributes(res.data.category.attributes.filter(a => !a.is_ignored));
                 }
             } catch (error) {
@@ -98,7 +106,6 @@ export default function CreateProductPage() {
     };
 
     const handleSelectCategory = (category) => {
-        // Select category and move to form (works for any category)
         setSelectedCategory(category);
         setFormData(prev => ({ ...prev, category_ids: [category.id] }));
         setStep('form');
@@ -106,16 +113,14 @@ export default function CreateProductPage() {
 
     const handleCategoryClick = (category) => {
         if (hasChildren(category.id)) {
-            // Drill down
             setCurrentParentId(category.id);
         } else {
-            // Select leaf and move to form
             handleSelectCategory(category);
         }
     };
 
     const handleBackUp = () => {
-        if (currentParentId === null) return; // Already at top
+        if (currentParentId === null) return;
         const current = categories.find(c => c.id === currentParentId);
         setCurrentParentId(current ? (current.parent_id || null) : null);
     };
@@ -168,7 +173,6 @@ export default function CreateProductPage() {
     const removeTag = (tag) => setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
     const handleTagKeyDown = (e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); } };
 
-
     // ------------------------------------------------------------------
     // RENDER: STEP 1 - CATEGORY SELECTION
     // ------------------------------------------------------------------
@@ -177,82 +181,81 @@ export default function CreateProductPage() {
         const parentCategory = categories.find(c => c.id === currentParentId);
 
         return (
-            <div className="max-w-4xl mx-auto p-8">
-                <h1 className="text-2xl font-bold mb-2">Category Selection</h1>
-                <p className="text-gray-500 mb-8">Choose the category for your new product.</p>
+            <div className="w-full space-y-4">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-2xl font-black text-gray-900">Category Selection</h1>
+                    <p className="text-sm text-gray-500">Pick a category for your product. Any level can be selected.</p>
+                </div>
 
-                <div className="bg-white rounded-lg shadow-lg border p-6 min-h-[400px]">
-                    {/* Breadcrumb / Navigation */}
-                    <div className="flex items-center gap-2 mb-6 text-sm">
+                <div className="bg-white rounded-lg shadow-none border border-gray-100 p-6 min-h-[400px]">
+                    <div className="flex items-center gap-2 mb-6 text-sm overflow-x-auto whitespace-nowrap pb-2">
                         <button
                             onClick={() => setCurrentParentId(null)}
-                            className={`hover:text-blue-600 ${currentParentId === null ? 'font-bold text-gray-900' : 'text-gray-500'}`}
+                            className={cn("hover:text-blue-600 transition", currentParentId === null ? 'font-black text-gray-900' : 'text-gray-400 font-medium')}
                         >
                             All Categories
                         </button>
                         {parentCategory && (
                             <>
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
-                                <span className="font-bold text-gray-900">{parentCategory.name}</span>
+                                <ChevronRight className="w-4 h-4 text-gray-300" />
+                                <span className="font-black text-gray-900">{parentCategory.name}</span>
                             </>
                         )}
                     </div>
 
                     {currentParentId !== null && (
-                        <button onClick={handleBackUp} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
-                            <ArrowLeft className="w-4 h-4" /> Back
+                        <button onClick={handleBackUp} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 mb-6 uppercase tracking-widest">
+                            <ArrowLeft className="w-4 h-4" /> Go Back
                         </button>
                     )}
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
                         {currentOptions.map(cat => (
                             <div
                                 key={cat.id}
-                                className="group border rounded-lg p-4 hover:border-blue-500 transition flex flex-col items-center text-center gap-3"
+                                className="group flex items-center gap-4 bg-white p-4 rounded-lg border border-gray-100 hover:border-blue-500 transition-all shadow-none"
                             >
-                                {cat.image_url ? (
-                                    <img src={cat.image_url} className="w-16 h-16 object-cover rounded-md" alt="" />
-                                ) : (
-                                    <div className="w-16 h-16 bg-blue-100 text-blue-500 rounded-md flex items-center justify-center">
-                                        <Folder className="w-8 h-8 fill-current" />
-                                    </div>
-                                )}
-
-                                <div className="flex-1">
-                                    <span className="font-medium text-gray-900 block">{cat.name}</span>
+                                <div
+                                    onClick={() => handleCategoryClick(cat)}
+                                    className="w-12 h-12 bg-gray-50 text-gray-400 border border-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors cursor-pointer"
+                                >
+                                    {cat.image_url ? (
+                                        <img src={cat.image_url} className="w-full h-full object-cover rounded-lg" alt="" />
+                                    ) : (
+                                        <Folder className="w-6 h-6" />
+                                    )}
                                 </div>
 
-                                {hasChildren(cat.id) ? (
-                                    <div className="flex flex-col gap-2 w-full">
-                                        <button
-                                            onClick={() => handleSelectCategory(cat)}
-                                            className="w-full px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 transition"
-                                        >
-                                            Select This Category
-                                        </button>
-                                        <button
-                                            onClick={() => handleCategoryClick(cat)}
-                                            className="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center justify-center gap-1"
-                                        >
-                                            <ChevronRight className="w-3 h-3" />
-                                            View Subcategories
-                                        </button>
-                                    </div>
-                                ) : (
+                                <div
+                                    onClick={() => handleCategoryClick(cat)}
+                                    className="flex-1 min-w-0 cursor-pointer"
+                                >
+                                    <span className="font-black text-sm text-gray-900 block truncate leading-tight transition-colors">{cat.name}</span>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                                        {hasChildren(cat.id) ? 'Subcategories' : 'Direct Selection'}
+                                    </p>
+                                </div>
+
+                                <div className="flex gap-1">
                                     <button
-                                        onClick={() => handleSelectCategory(cat)}
-                                        className="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                                        onClick={(e) => { e.stopPropagation(); handleSelectCategory(cat); }}
+                                        className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center justify-center shadow-none"
+                                        title="Select this category"
                                     >
-                                        Select Category
+                                        <Check className="w-4 h-4" />
                                     </button>
-                                )}
+                                    {hasChildren(cat.id) && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleCategoryClick(cat); }}
+                                            className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-100 transition-all flex items-center justify-center border border-gray-100"
+                                            title="View subcategories"
+                                        >
+                                            <ChevronRight className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
-                        {currentOptions.length === 0 && (
-                            <div className="col-span-full text-center py-12 text-gray-500">
-                                No categories found here.
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -263,201 +266,252 @@ export default function CreateProductPage() {
     // RENDER: STEP 2 - PRODUCT FORM
     // ------------------------------------------------------------------
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-8">
+        <div className="w-full pb-24 space-y-4">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Create Product</h1>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                        Creating in: <span className="font-semibold text-blue-600 px-2 py-0.5 bg-blue-50 rounded">{selectedCategory?.name}</span>
-                        <button onClick={() => setStep('category_selection')} className="text-gray-400 hover:text-gray-600 underline text-xs ml-2">Change</button>
+                    <h1 className="text-2xl font-black text-gray-900">Create Product</h1>
+                    <div className="flex items-center gap-2 mt-1 text-[10px] font-black uppercase tracking-widest">
+                        <span className="text-gray-400">Category:</span>
+                        <span className="text-blue-600 px-2 py-0.5 bg-blue-50 rounded border border-blue-100">{selectedCategory?.name}</span>
+                        <button onClick={() => setStep('category_selection')} className="text-gray-400 hover:text-blue-600 underline">Change</button>
                     </div>
                 </div>
                 <button
                     type="button"
                     onClick={() => router.back()}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="p-2 text-gray-400 hover:text-gray-900 bg-white border border-gray-100 rounded-lg transition-all"
                 >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5" />
                 </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Basic Information */}
-                <div className="bg-white rounded-lg shadow p-6 space-y-6">
-                    <h2 className="text-xl font-semibold border-b pb-2">Basic Information</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Basic Information Section */}
+                <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('basic')}
+                        className="w-full flex items-center justify-between p-5 hover:bg-gray-50/50 transition-colors"
+                    >
+                        <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Basic Information</h2>
+                        {expandedSections.basic ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                    </button>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Product Name *
-                        </label>
-                        <input type="text" required className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                            value={formData.name} onChange={(e) => handleNameChange(e.target.value)} />
-                    </div>
+                    {expandedSections.basic && (
+                        <div className="p-5 pt-0 space-y-5 border-t border-gray-50">
+                            <div className="mt-5">
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Product Name *</label>
+                                <input type="text" required className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none"
+                                    value={formData.name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Minimalist Watch" />
+                            </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Product Image URL</label>
-                        <div className="flex gap-4 items-start">
-                            <input type="url" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
-                                value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                placeholder="https://example.com/image.jpg" />
-                            {formData.image_url && <img src={formData.image_url} alt="Preview" className="w-16 h-16 object-cover rounded border bg-gray-50" onError={(e) => e.target.style.display = 'none'} />}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                        <textarea rows={4} className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                            value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Price ($) *</label>
-                            <input type="number" step="0.01" required className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">SKU *</label>
-                            <input type="text" required className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                                <option value="draft">Draft</option>
-                                <option value="active">Active</option>
-                                <option value="archived">Archived</option>
-                            </select>
-                        </div>
-                        <div className="flex items-center pt-8">
-                            <label className="flex items-center cursor-pointer">
-                                <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-                                    checked={formData.is_featured} onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })} />
-                                <span className="ml-2 text-sm font-medium text-gray-700 flex items-center gap-1">
-                                    <Star className="w-4 h-4 text-yellow-500" />
-                                    Mark as Featured
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Attributes Section */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Attributes for {selectedCategory?.name}</h2>
-
-                    {availableAttributes.length === 0 ? (
-                        <p className="text-gray-500 italic">No specific attributes defined for this category.</p>
-                    ) : (
-                        <div className="grid grid-cols-2 gap-6">
-                            {availableAttributes.map(attr => (
-                                <div key={attr.code}>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        {attr.image_url ? (
-                                            <img src={attr.image_url} alt="" className="w-5 h-5 object-cover rounded" />
-                                        ) : (
-                                            <ImageIcon className="w-4 h-4 text-gray-400" />
-                                        )}
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            {attr.label}
-                                            {attr.is_required && <span className="text-red-500 ml-1">*</span>}
-                                        </label>
-                                    </div>
-
-                                    {attr.type === 'text' && (
-                                        <input type="text" className="w-full px-3 py-2 border rounded-lg"
-                                            value={formData.attributes[attr.code] || ''}
-                                            onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
-                                            required={attr.is_required} />
-                                    )}
-
-                                    {attr.type === 'number' && (
-                                        <input type="number" className="w-full px-3 py-2 border rounded-lg"
-                                            value={formData.attributes[attr.code] || ''}
-                                            onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
-                                            required={attr.is_required} />
-                                    )}
-
-                                    {attr.type === 'select' && (
-                                        <select className="w-full px-3 py-2 border rounded-lg"
-                                            value={formData.attributes[attr.code] || ''}
-                                            onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
-                                            required={attr.is_required}>
-                                            <option value="">Select {attr.label}...</option>
-                                            {attr.options?.map((opt, i) => (
-                                                <option key={i} value={opt.value}>{opt.label}</option>
-                                            ))}
-                                        </select>
-                                    )}
-
-                                    {attr.type === 'boolean' && (
-                                        <select className="w-full px-3 py-2 border rounded-lg"
-                                            value={formData.attributes[attr.code] || ''}
-                                            onChange={(e) => handleAttributeChange(attr.code, e.target.value)}>
-                                            <option value="">Select...</option>
-                                            <option value="true">Yes</option>
-                                            <option value="false">No</option>
-                                        </select>
-                                    )}
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Product Image URL</label>
+                                <div className="flex gap-4 items-start flex-col md:flex-row">
+                                    <input type="url" className="flex-1 w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                                        value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                                        placeholder="Paste image link here" />
+                                    {formData.image_url && <img src={formData.image_url} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-gray-100 bg-gray-50" onError={(e) => e.target.style.display = 'none'} />}
                                 </div>
-                            ))}
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Description</label>
+                                <textarea rows={4} className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                                    value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Tell more about the product..." />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Price ($) *</label>
+                                    <input type="number" step="0.01" required className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                                        value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">SKU *</label>
+                                    <input type="text" required className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                                        value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} placeholder="SKU-XXXXX" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Status</label>
+                                    <select className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none appearance-none capitalize"
+                                        value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                                        <option value="draft">Draft</option>
+                                        <option value="active">Active</option>
+                                        <option value="archived">Archived</option>
+                                    </select>
+                                </div>
+                                <div className="flex items-center pt-2 md:pt-8 px-2">
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="checkbox" className="w-5 h-5 text-blue-600 border-gray-200 rounded-lg focus:ring-blue-100 transition-all"
+                                            checked={formData.is_featured} onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })} />
+                                        <span className="ml-3 text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors flex items-center gap-1.5">
+                                            <Star className={cn("w-4 h-4 transition-colors", formData.is_featured ? "text-yellow-500 fill-yellow-500" : "text-gray-200")} />
+                                            Featured Product
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* Organization (Tags) */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Tags</h2>
-                    <div className="flex gap-2 mb-2">
-                        <input type="text" className="flex-1 px-4 py-2 border rounded-lg"
-                            placeholder="Add tag..." value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={handleTagKeyDown} />
-                        <button type="button" onClick={addTag} className="px-4 py-2 bg-gray-200 rounded-lg">Add</button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {formData.tags.map((tag) => (
-                            <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                                {tag}
-                                <button type="button" onClick={() => removeTag(tag)} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                {/* SEO & URL */}
-                <div className="bg-white rounded-lg shadow p-6 space-y-6">
-                    <h2 className="text-xl font-semibold border-b pb-2">SEO & URL</h2>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">URL Handle</label>
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-500 text-sm">/products/</span>
-                            <input type="text" className="flex-1 px-4 py-2 border rounded-lg"
-                                value={formData.handle} onChange={(e) => setFormData({ ...formData, handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
-                        </div>
-                    </div>
-
-                    {/* Comprehensive SEO Editor */}
-                    <div className="border-t pt-4">
-                        <h3 className="text-md font-semibold mb-3 text-gray-800">Search Engine Optimization</h3>
-                        <p className="text-xs text-gray-500 mb-4">
-                            💡 Leave fields empty to inherit from category: <span className="font-semibold">{selectedCategory?.name}</span>
-                        </p>
-                        <SEOMetaEditor
-                            page={formData}
-                            onChange={(updated) => setFormData(updated)}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex gap-4">
-                    <button type="submit" disabled={loading} className={cn("flex-1 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700", loading && "opacity-50")}>
-                        {loading ? "Creating..." : "Create Product"}
+                {/* Attributes Section */}
+                <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('attributes')}
+                        className="w-full flex items-center justify-between p-5 hover:bg-gray-50/50 transition-colors"
+                    >
+                        <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Attributes</h2>
+                        {expandedSections.attributes ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                     </button>
-                    <button type="button" onClick={() => router.back()} className="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                        Cancel
+
+                    {expandedSections.attributes && (
+                        <div className="p-5 pt-0 border-t border-gray-50">
+                            {availableAttributes.length === 0 ? (
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic py-4">No custom attributes for this category.</p>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mt-5">
+                                    {availableAttributes.map(attr => (
+                                        <div key={attr.code}>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-6 h-6 flex items-center justify-center bg-gray-50 rounded border border-gray-100">
+                                                    {attr.image_url ? (
+                                                        <img src={attr.image_url} alt="" className="w-4 h-4 object-cover rounded-[2px]" />
+                                                    ) : (
+                                                        <ImageIcon className="w-3 h-3 text-gray-300" />
+                                                    )}
+                                                </div>
+                                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                                    {attr.label}
+                                                    {attr.is_required && <span className="text-red-500 ml-1 opacity-50">*</span>}
+                                                </label>
+                                            </div>
+
+                                            {attr.type === 'text' && (
+                                                <input type="text" className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                                                    value={formData.attributes[attr.code] || ''}
+                                                    onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
+                                                    required={attr.is_required} />
+                                            )}
+
+                                            {attr.type === 'number' && (
+                                                <input type="number" className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                                                    value={formData.attributes[attr.code] || ''}
+                                                    onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
+                                                    required={attr.is_required} />
+                                            )}
+
+                                            {attr.type === 'select' && (
+                                                <select className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none appearance-none"
+                                                    value={formData.attributes[attr.code] || ''}
+                                                    onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
+                                                    required={attr.is_required}>
+                                                    <option value="">Select Option...</option>
+                                                    {attr.options?.map((opt, i) => (
+                                                        <option key={i} value={opt.value}>{opt.label}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+
+                                            {attr.type === 'boolean' && (
+                                                <select className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none appearance-none"
+                                                    value={formData.attributes[attr.code] || ''}
+                                                    onChange={(e) => handleAttributeChange(attr.code, e.target.value)}>
+                                                    <option value="">Choose...</option>
+                                                    <option value="true">Yes</option>
+                                                    <option value="false">No</option>
+                                                </select>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Tags Section */}
+                <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('tags')}
+                        className="w-full flex items-center justify-between p-5 hover:bg-gray-50/50 transition-colors"
+                    >
+                        <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Tags</h2>
+                        {expandedSections.tags ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                    </button>
+
+                    {expandedSections.tags && (
+                        <div className="p-5 pt-0 border-t border-gray-50">
+                            <div className="flex gap-2 mb-4 mt-5">
+                                <input type="text" className="flex-1 px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                                    placeholder="Add tag..." value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={handleTagKeyDown} />
+                                <button type="button" onClick={addTag} className="px-5 py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-700 transition shadow-none">Add</button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {formData.tags.map((tag) => (
+                                    <span key={tag} className="inline-flex items-center gap-2 px-3 py-1 bg-gray-50 text-gray-900 border border-gray-100 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                                        {tag}
+                                        <button type="button" onClick={() => removeTag(tag)} className="text-gray-400 hover:text-red-600"><X className="w-3 h-3" /></button>
+                                    </span>
+                                ))}
+                                {formData.tags.length === 0 && <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">No tags added</p>}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* SEO Section */}
+                <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('seo')}
+                        className="w-full flex items-center justify-between p-5 hover:bg-gray-50/50 transition-colors"
+                    >
+                        <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">SEO</h2>
+                        {expandedSections.seo ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                    </button>
+
+                    {expandedSections.seo && (
+                        <div className="p-5 pt-0 border-t border-gray-50 space-y-6 pt-5">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">URL Slug</label>
+                                <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-lg px-4 py-2">
+                                    <span className="text-gray-400 text-xs font-bold">/product/</span>
+                                    <input type="text" className="flex-1 bg-transparent border-none text-sm focus:ring-0 outline-none p-0 font-medium"
+                                        value={formData.handle} onChange={(e) => setFormData({ ...formData, handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <SEOMetaEditor
+                                    page={formData}
+                                    onChange={(updated) => setFormData(updated)}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-3 pt-6">
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className={cn("flex-1 py-4 bg-blue-600 text-white rounded-lg text-xs font-black uppercase tracking-[0.2em] hover:bg-blue-700 transition-all shadow-none flex items-center justify-center gap-2", loading && "opacity-50")}
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Product"}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="px-8 py-4 bg-gray-100 text-gray-500 rounded-lg text-xs font-black uppercase tracking-[0.2em] hover:bg-gray-200 transition-all"
+                    >
+                        Discard
                     </button>
                 </div>
             </form>

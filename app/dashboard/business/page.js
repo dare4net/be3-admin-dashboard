@@ -32,8 +32,8 @@ export default function BusinessPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-900 mb-8">Business Management</h1>
+        <div className="w-full space-y-4">
+            <h1 className="text-2xl font-black text-gray-900 mb-6">Business Management</h1>
             <BusinessTab user={user} onUpdate={(updated) => setUser(updated)} />
         </div>
     );

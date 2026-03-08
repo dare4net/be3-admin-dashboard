@@ -1,8 +1,13 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
-import { Plus, Trash2, Edit2, Check, X, Search, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
+import {
+    Plus, Trash2, Edit2, Check, X, Search, Link as LinkIcon,
+    Image as ImageIcon, ChevronRight, ChevronDown, Tag,
+    Settings, Loader2, ArrowLeft, MoreVertical, Layers
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const ChipInput = ({ values = [], onChange, placeholder }) => {
     const [inputValue, setInputValue] = useState("");
@@ -21,15 +26,15 @@ const ChipInput = ({ values = [], onChange, placeholder }) => {
     };
 
     return (
-        <div className="flex flex-wrap gap-1 p-1.5 border border-gray-300 rounded-lg min-h-[38px] bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+        <div className="flex flex-wrap gap-1 p-2 bg-gray-50 border border-gray-100 rounded-xl min-h-[44px] focus-within:ring-4 focus-within:ring-blue-100 transition-all">
             {list.map((v, i) => (
-                <span key={i} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-xs font-bold border border-blue-100">
+                <span key={i} className="flex items-center gap-1 bg-white text-blue-600 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-blue-50 shadow-sm">
                     {v}
-                    <button type="button" onClick={() => removeTag(i)} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
+                    <button type="button" onClick={() => removeTag(i)} className="hover:text-blue-900 transition-colors"><X className="w-3 h-3" /></button>
                 </span>
             ))}
             <input
-                className="flex-1 outline-none text-sm px-1 min-w-[80px]"
+                className="flex-1 bg-transparent outline-none text-xs px-2 min-w-[100px] placeholder:text-gray-300"
                 placeholder={list.length === 0 ? placeholder : ""}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
@@ -50,27 +55,25 @@ const ChipInput = ({ values = [], onChange, placeholder }) => {
 export default function AttributesPage() {
     const [attributes, setAttributes] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [searchText, setSearchText] = useState("");
     const [editingAttribute, setEditingAttribute] = useState(null);
-    const [affectedCategories, setAffectedCategories] = useState([]); // For the current attribute being edited
+    const [affectedCategories, setAffectedCategories] = useState([]);
     const [isExclusionModalOpen, setIsExclusionModalOpen] = useState(false);
     const [exclusionConfig, setExclusionConfig] = useState({ clauseIndex: null, excludedIds: [] });
 
+    // View state
+    const [activeTab, setActiveTab] = useState('general'); // For Modal
+
     // Form State
     const [formData, setFormData] = useState({
-        label: '',
-        code: '',
-        type: 'text',
-        image_url: '',
-        options: [], // [{ label: 'Small', value: 'S' }]
-        clauses: [] // [{ name: 'under_30', label: 'Under $30', operator: '<', value: '30', prefix: 'Steal: ', suffix: ' under $30', seo_template: '' }]
+        label: '', code: '', type: 'text', image_url: '',
+        options: [], clauses: []
     });
 
-    const [selectedCategories, setSelectedCategories] = useState([]); // Currently selected in UI
-    const [initialCategories, setInitialCategories] = useState([]); // Originally linked (for diffing)
-
+    const [selectedCategories, setSelectedCategories] = useState([]);
+    const [initialCategories, setInitialCategories] = useState([]);
     const [optionInput, setOptionInput] = useState({ label: '', value: '' });
 
     useEffect(() => {
@@ -79,40 +82,46 @@ export default function AttributesPage() {
 
     const fetchData = async () => {
         try {
-            setLoading(true);
+            // setLoading(true); // Disabled loading screen
             const [attrRes, catRes] = await Promise.all([
                 api.get('/products/attributes'),
                 api.get('/products/categories/all')
             ]);
-
-            if (attrRes.data.success) setAttributes(attrRes.data.data || []);
+            if (attrRes.data.success) {
+                // Parse JSON strings for options and clauses
+                const parsedAttributes = (attrRes.data.data || []).map(attr => ({
+                    ...attr,
+                    options: typeof attr.options === 'string' ? JSON.parse(attr.options || '[]') : (attr.options || []),
+                    clauses: typeof attr.clauses === 'string' ? JSON.parse(attr.clauses || '[]') : (attr.clauses || [])
+                }));
+                setAttributes(parsedAttributes);
+            }
             if (catRes.data.success) setCategories(catRes.data.categories || []);
-
         } catch (error) {
             console.error('Failed to fetch data', error);
-        } finally {
-            setLoading(false);
         }
+        // finally {
+        //     setLoading(false);
+        // }
     };
 
     const handleCreate = () => {
         setEditingAttribute(null);
         resetForm();
+        setActiveTab('general');
         setIsCreateModalOpen(true);
     };
 
     const handleEdit = async (attr) => {
         setEditingAttribute(attr);
         setFormData({
-            label: attr.label,
-            code: attr.code,
-            type: attr.type,
-            image_url: attr.image_url || '',
-            options: attr.options || [],
+            label: attr.label, code: attr.code, type: attr.type,
+            image_url: attr.image_url || '', options: attr.options || [],
             clauses: attr.clauses || []
         });
+        setActiveTab('general');
+        setIsCreateModalOpen(true);
 
-        // Fetch linked categories
         try {
             const res = await api.get(`/products/attributes/${attr.id}/categories`);
             if (res.data.success) {
@@ -122,50 +131,33 @@ export default function AttributesPage() {
             }
         } catch (error) {
             console.error('Failed to fetch linked categories', error);
-            setSelectedCategories([]);
-            setInitialCategories([]);
         }
-
-        setIsCreateModalOpen(true);
-        if (attr.id) {
-            fetchAffectedCategories(attr.id);
-        }
+        if (attr.id) fetchAffectedCategories(attr.id);
     };
 
     const fetchAffectedCategories = async (attrId) => {
         try {
             const res = await api.get(`/products/attributes/${attrId}/affected-categories`);
-            if (res.data.success) {
-                setAffectedCategories(res.data.categories || []);
-            }
+            if (res.data.success) setAffectedCategories(res.data.categories || []);
         } catch (error) {
             console.error('Failed to fetch affected categories', error);
         }
     };
 
-
     const handleDelete = async (attr) => {
-        if (!confirm(`Delete attribute "${attr.label}"? This may affect existing products.`)) return;
-
+        if (!confirm(`Permanently delete "${attr.label}"?`)) return;
         try {
             await api.delete(`/products/attributes/${attr.id}`);
             fetchData();
         } catch (error) {
-            console.error('Failed to delete attribute', error);
-            alert('Failed to delete attribute. It might be in use.');
+            alert('Deletion failed. Attribute might be in active use.');
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Prepare payload - ensure options is valid JSON
-            const payload = {
-                ...formData,
-                options: JSON.stringify(formData.options),
-                clauses: JSON.stringify(formData.clauses)
-            };
-
+            const payload = { ...formData, options: JSON.stringify(formData.options), clauses: JSON.stringify(formData.clauses) };
             let attributeId;
             if (editingAttribute) {
                 const res = await api.put(`/products/attributes/${editingAttribute.id}`, payload);
@@ -175,19 +167,12 @@ export default function AttributesPage() {
                 attributeId = res.data.attribute.id;
             }
 
-            // Calculate Diffs
             const added = selectedCategories.filter(id => !initialCategories.includes(id));
             const removed = initialCategories.filter(id => !selectedCategories.includes(id));
 
-            // Process Adds
             for (const catId of added) {
-                await api.post(`/products/categories/${catId}/attributes`, {
-                    attribute_id: attributeId,
-                    is_required: false
-                });
+                await api.post(`/products/categories/${catId}/attributes`, { attribute_id: attributeId, is_required: false });
             }
-
-            // Process Removes (Only if editing, as new attributes have no initial)
             if (editingAttribute) {
                 for (const catId of removed) {
                     await api.delete(`/products/categories/${catId}/attributes/${attributeId}`);
@@ -198,103 +183,24 @@ export default function AttributesPage() {
             setIsCreateModalOpen(false);
             resetForm();
         } catch (error) {
-            console.error('Failed to save attribute', error);
-            alert('Failed to save attribute');
+            alert('Save failed');
         }
     };
 
     const resetForm = () => {
-        setFormData({
-            label: '',
-            code: '',
-            type: 'text',
-            image_url: '',
-            options: [],
-            clauses: []
-        });
+        setFormData({ label: '', code: '', type: 'text', image_url: '', options: [], clauses: [] });
         setOptionInput({ label: '', value: '' });
         setSelectedCategories([]);
         setInitialCategories([]);
     };
 
-    const addOption = () => {
-        if (!optionInput.label || !optionInput.value) return;
-        setFormData(prev => ({
-            ...prev,
-            options: [...prev.options, optionInput]
-        }));
-        setOptionInput({ label: '', value: '' });
-    };
-
-    const removeOption = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            options: prev.options.filter((_, i) => i !== index)
-        }));
-    };
-
-    const addClause = () => {
-        setFormData(prev => ({
-            ...prev,
-            clauses: [...prev.clauses, { name: '', label: '', operator: '=', value: '', prefix: '', suffix: '', seo_template: '', excluded_category_ids: [] }]
-        }));
-    };
-
-    const removeClause = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            clauses: prev.clauses.filter((_, i) => i !== index)
-        }));
-    };
-
-    const openExclusions = (index) => {
-        setExclusionConfig({
-            clauseIndex: index,
-            excludedIds: formData.clauses[index].excluded_category_ids || []
-        });
-        setIsExclusionModalOpen(true);
-    };
-
-    const toggleExclusion = (catId) => {
-        setExclusionConfig(prev => {
-            const nextIds = prev.excludedIds.includes(catId)
-                ? prev.excludedIds.filter(id => id !== catId)
-                : [...prev.excludedIds, catId];
-
-            // Sync with formData immediately
-            const newClauses = [...formData.clauses];
-            newClauses[prev.clauseIndex] = { ...newClauses[prev.clauseIndex], excluded_category_ids: nextIds };
-            setFormData(f => ({ ...f, clauses: newClauses }));
-
-            return { ...prev, excludedIds: nextIds };
-        });
-    };
-
     const updateClause = (index, field, val) => {
         const newClauses = [...formData.clauses];
         newClauses[index] = { ...newClauses[index], [field]: val };
-
-        // Auto-generate name from label if name is empty
         if (field === 'label' && !newClauses[index].name) {
             newClauses[index].name = val.toLowerCase().replace(/[^a-z0-9_]+/g, '_');
         }
-
         setFormData(prev => ({ ...prev, clauses: newClauses }));
-    };
-
-    // Auto-generate code from label (only for create)
-    const handleLabelChange = (val) => {
-        setFormData(prev => ({
-            ...prev,
-            label: val,
-            code: (!editingAttribute && !prev.code) ? val.toLowerCase().replace(/[^a-z0-9_]+/g, '_') : prev.code
-        }));
-    };
-
-    const toggleCategorySelection = (catId) => {
-        setSelectedCategories(prev =>
-            prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]
-        );
     };
 
     const filteredAttributes = attributes.filter(attr =>
@@ -303,84 +209,124 @@ export default function AttributesPage() {
     );
 
     return (
-        <div className="max-w-6xl mx-auto p-6">
-            <div className="flex justify-between items-center mb-8">
+        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Attributes</h1>
-                    <p className="text-gray-500 mt-1">Manage global product attributes</p>
+                    <h1 className="text-3xl font-black text-gray-900 leading-none">Attributes</h1>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2">Core Specification Library</p>
                 </div>
                 <button
                     onClick={handleCreate}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    className="flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/10 text-[11px] font-black uppercase tracking-widest"
                 >
-                    <Plus className="w-4 h-4" />
-                    Create Attribute
+                    <Plus className="w-5 h-5" />
+                    New Definition
                 </button>
             </div>
 
             {/* Search */}
-            <div className="mb-6 relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="bg-white p-2 rounded-2xl border border-gray-100 shadow-none flex items-center gap-2">
+                <Search className="w-5 h-5 text-gray-400 ml-4" />
                 <input
                     type="text"
-                    placeholder="Search attributes..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="SCANNING LIBRARY..."
+                    className="flex-1 px-4 py-3 bg-transparent outline-none text-xs font-black uppercase tracking-widest placeholder:text-gray-200"
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
                 />
             </div>
 
-            {/* List */}
-            <div className="bg-white rounded-xl shadow overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-100">
+            {/* Content Table / Grid */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-none overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-50/50 border-b border-gray-100">
                         <tr>
-                            <th className="px-6 py-4 font-semibold text-gray-700">Attribute</th>
-                            <th className="px-6 py-4 font-semibold text-gray-700">Code</th>
-                            <th className="px-6 py-4 font-semibold text-gray-700">Type</th>
-                            <th className="px-6 py-4 font-semibold text-gray-700">Options</th>
-                            <th className="px-6 py-4 font-semibold text-gray-700 text-right">Actions</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Identity</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] hidden md:table-cell">Internal Key</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] hidden sm:table-cell">Interface</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] hidden lg:table-cell">Options</th>
+                            <th className="px-6 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {loading ? (
-                            <tr><td colSpan="5" className="p-8 text-center text-gray-500">Loading...</td></tr>
-                        ) : filteredAttributes.length === 0 ? (
-                            <tr><td colSpan="5" className="p-8 text-center text-gray-500">No attributes found. Create one to get started.</td></tr>
+                    <tbody className="divide-y divide-gray-50">
+                        {/* {loading ? (
+                            <tr>
+                                <td colSpan="5" className="p-20 text-center grayscale opacity-50">
+                                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Hydrating Catalog...</p>
+                                </td>
+                            </tr>
+                        ) : */}
+                        {filteredAttributes.length === 0 ? (
+                            <tr>
+                                <td colSpan="5" className="p-20 text-center">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center mx-auto mb-4 opacity-50">
+                                        <Tag className="w-8 h-8 text-gray-200" />
+                                    </div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Inventory Clean</p>
+                                </td>
+                            </tr>
                         ) : (
                             filteredAttributes.map((attr) => (
-                                <tr key={attr.id} className="hover:bg-gray-50 transition">
-                                    <td className="px-6 py-4 font-medium text-gray-900 flex items-center gap-3">
-                                        {attr.image_url ? (
-                                            <img src={attr.image_url} alt="" className="w-8 h-8 rounded border object-cover" />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded bg-gray-100 border flex items-center justify-center text-gray-400">
-                                                <ImageIcon className="w-4 h-4" />
-                                            </div>
-                                        )}
-                                        {attr.label}
-                                    </td>
+                                <tr key={attr.id} className="group hover:bg-gray-50/50 transition-all">
                                     <td className="px-6 py-4">
-                                        <code className="px-2 py-1 bg-gray-100 rounded text-sm text-gray-600">{attr.code}</code>
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center flex-shrink-0 group-hover:border-blue-100 transition-colors overflow-hidden">
+                                                {attr.image_url ? (
+                                                    <img src={attr.image_url} alt="" className="w-full h-full object-cover" />
+                                                ) : <Tag className="w-5 h-5 text-gray-300" />}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-sm text-gray-900">{attr.label}</p>
+                                                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mt-1 md:hidden">{attr.type}</p>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 capitalize">{attr.type}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        {attr.options?.length > 0
-                                            ? `${attr.options.length} options`
-                                            : '-'}
+                                    <td className="px-6 py-4 hidden md:table-cell">
+                                        <code className="text-[10px] font-mono font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg">
+                                            {attr.code}
+                                        </code>
+                                    </td>
+                                    <td className="px-6 py-4 hidden sm:table-cell">
+                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{attr.type}</span>
+                                    </td>
+                                    <td className="px-6 py-4 hidden lg:table-cell">
+                                        <div className="flex items-center gap-2">
+                                            {(() => {
+                                                // Ensure options is always an array
+                                                let options = attr.options;
+                                                if (typeof options === 'string') {
+                                                    try {
+                                                        options = JSON.parse(options);
+                                                    } catch (e) {
+                                                        options = [];
+                                                    }
+                                                }
+                                                if (!Array.isArray(options)) options = [];
+
+                                                return (
+                                                    <>
+                                                        {options.slice(0, 3).map((o, i) => (
+                                                            <span key={i} className="text-[9px] font-black px-2 py-0.5 bg-gray-50 border border-gray-100 text-gray-400 rounded-md uppercase tracking-tight">
+                                                                {o.label}
+                                                            </span>
+                                                        ))}
+                                                        {options.length > 3 && (
+                                                            <span className="text-[9px] font-black text-gray-300">+{options.length - 3}</span>
+                                                        )}
+                                                        {options.length === 0 && <span className="text-[9px] font-black text-gray-200 uppercase tracking-widest">Dynamic</span>}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={() => handleEdit(attr)}
-                                                className="p-2 text-gray-400 hover:text-blue-600 transition hover:bg-blue-50 rounded-full"
-                                            >
+                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                            <button onClick={() => handleEdit(attr)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
-                                            <button
-                                                onClick={() => handleDelete(attr)}
-                                                className="p-2 text-gray-400 hover:text-red-600 transition hover:bg-red-50 rounded-full"
-                                            >
+                                            <button onClick={() => handleDelete(attr)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -392,426 +338,357 @@ export default function AttributesPage() {
                 </table>
             </div>
 
-            {/* Create/Edit Modal */}
+            {/* Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <h3 className="font-bold text-lg">{editingAttribute ? 'Edit Attribute' : 'Create New Attribute'}</h3>
-                            <button onClick={() => setIsCreateModalOpen(false)}><X className="w-5 h-5 text-gray-400 hover:text-gray-600" /></button>
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-200 transition-all">
+                        <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-900">{editingAttribute ? 'Update' : 'Define'} Attribute</h3>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Specification Drafting</p>
+                            </div>
+                            <button onClick={() => setIsCreateModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-900 transition-colors"><X className="w-6 h-6" /></button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Attribute Label</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                        placeholder="e.g. Size, Material"
-                                        value={formData.label}
-                                        onChange={(e) => handleLabelChange(e.target.value)}
-                                    />
-                                </div>
+                        <div className="flex border-b border-gray-100 bg-white">
+                            {['general', 'logic', 'links'].map(t => (
+                                <button
+                                    key={t}
+                                    onClick={() => setActiveTab(t)}
+                                    className={cn(
+                                        "flex-1 px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all",
+                                        activeTab === t ? "border-blue-600 text-blue-600" : "border-transparent text-gray-300 hover:text-gray-600"
+                                    )}
+                                >
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
 
-                                <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                                        placeholder="e.g. size"
-                                        value={formData.code}
-                                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                                    <select
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                        value={formData.type}
-                                        onChange={(e) => {
-                                            const newType = e.target.value;
-                                            const updates = { ...formData, type: newType };
-
-                                            // Initialize default options for boolean type
-                                            if (newType === 'boolean' && (!formData.options || formData.options.length === 0)) {
-                                                updates.options = [
-                                                    { label: 'Yes', value: 'true' },
-                                                    { label: 'No', value: 'false' }
-                                                ];
-                                            }
-
-                                            setFormData(updates);
-                                        }}
-                                    >
-                                        <option value="text">Text Input</option>
-                                        <option value="number">Number Input</option>
-                                        <option value="select">Select Dropdown</option>
-                                        <option value="multiselect">Multi-Select</option>
-                                        <option value="boolean">Yes/No Toggle</option>
-                                    </select>
-                                </div>
-                                <div className="col-span-2 sm:col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Icon URL (Optional)</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                                            placeholder="https://..."
-                                            value={formData.image_url}
-                                            onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                        />
-                                        {formData.image_url && <img src={formData.image_url} className="w-10 h-10 rounded border object-cover" />}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Options Editor (for select, multiselect, boolean) */}
-                            {(formData.type === 'select' || formData.type === 'multiselect' || formData.type === 'boolean') && (
-                                <div className="bg-green-50/50 p-4 rounded-lg border border-green-100">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <label className="block text-sm font-bold text-green-900 flex items-center gap-2">
-                                            <Check className="w-4 h-4" /> Predefined Options
-                                        </label>
-                                        {formData.type !== 'boolean' && (
-                                            <button
-                                                type="button"
-                                                onClick={addOption}
-                                                className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 flex items-center gap-1"
-                                            >
-                                                <Plus className="w-3 h-3" /> Add Option
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {formData.type === 'boolean' ? (
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin">
+                            {activeTab === 'general' && (
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <p className="text-xs text-green-700 mb-2">Boolean attributes use Yes/No values by default. You can customize the labels below:</p>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">True Label</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Yes"
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={formData.options[0]?.label || ''}
-                                                        onChange={(e) => {
-                                                            const newOptions = [...formData.options];
-                                                            newOptions[0] = { label: e.target.value || 'Yes', value: 'true' };
-                                                            setFormData({ ...formData, options: newOptions });
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">False Label</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="No"
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={formData.options[1]?.label || ''}
-                                                        onChange={(e) => {
-                                                            const newOptions = [...formData.options];
-                                                            newOptions[1] = { label: e.target.value || 'No', value: 'false' };
-                                                            setFormData({ ...formData, options: newOptions });
-                                                        }}
-                                                    />
-                                                </div>
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Display Label</label>
+                                            <input
+                                                type="text" required
+                                                className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-200"
+                                                placeholder="e.g. Size, Color"
+                                                value={formData.label}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setFormData({ ...formData, label: val, code: editingAttribute ? formData.code : val.toLowerCase().replace(/[^a-z0-9_]+/g, '_') });
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Internal Hash</label>
+                                            <input
+                                                type="text" required
+                                                className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-mono text-gray-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                value={formData.code}
+                                                onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]+/g, '_') })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Interface Pattern</label>
+                                            <select
+                                                className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                value={formData.type}
+                                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                            >
+                                                <option value="text">Text Input</option>
+                                                <option value="number">Number Input</option>
+                                                <option value="select">Dropdown Menu</option>
+                                                <option value="multiselect">Multi-Selection</option>
+                                                <option value="boolean">Binary Switch</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Interface Icon</label>
+                                            <div className="flex gap-4">
+                                                <input
+                                                    type="url"
+                                                    className="flex-1 px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-200"
+                                                    placeholder="https://..."
+                                                    value={formData.image_url}
+                                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                                                />
+                                                {formData.image_url && <img src={formData.image_url} className="w-14 h-14 rounded-2xl object-cover border border-gray-100" />}
                                             </div>
                                         </div>
-                                    ) : (
-                                        <>
-                                            <div className="grid grid-cols-2 gap-3 mb-3">
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Option Label</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="e.g. Small"
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={optionInput.label}
-                                                        onChange={(e) => setOptionInput({ ...optionInput, label: e.target.value })}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
-                                                                e.preventDefault();
-                                                                addOption();
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Option Value</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="e.g. S"
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={optionInput.value}
-                                                        onChange={(e) => setOptionInput({ ...optionInput, value: e.target.value })}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
-                                                                e.preventDefault();
-                                                                addOption();
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
+                                    </div>
 
-                                            <div className="space-y-2 max-h-60 overflow-y-auto">
-                                                {formData.options.length === 0 ? (
-                                                    <p className="text-center text-green-300 text-xs py-4 border-2 border-dashed border-green-100 rounded-lg">
-                                                        No options defined. Add options for users to select from.
-                                                    </p>
-                                                ) : (
-                                                    formData.options.map((opt, i) => (
-                                                        <div key={i} className="bg-white p-2 rounded-lg border border-green-200 flex justify-between items-center group hover:border-green-300 transition">
-                                                            <div className="flex-1">
-                                                                <span className="font-medium text-sm text-gray-900">{opt.label}</span>
-                                                                <span className="mx-2 text-gray-300">→</span>
-                                                                <code className="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-600">{opt.value}</code>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeOption(i)}
-                                                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition opacity-0 group-hover:opacity-100"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    ))
+                                    {/* Options Section */}
+                                    {(formData.type === 'select' || formData.type === 'multiselect' || formData.type === 'boolean') && (
+                                        <div className="pt-6 border-t border-gray-100 space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Interface Options</label>
+                                                {formData.type !== 'boolean' && (
+                                                    <button type="button" onClick={() => {
+                                                        if (optionInput.label && optionInput.value) {
+                                                            setFormData({ ...formData, options: [...formData.options, optionInput] });
+                                                            setOptionInput({ label: '', value: '' });
+                                                        }
+                                                    }} className="text-[10px] font-black text-blue-600 uppercase tracking-widest underline underline-offset-4">Add Entry</button>
                                                 )}
                                             </div>
-                                        </>
+
+                                            {formData.type === 'boolean' ? (
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">True State</label>
+                                                        <input className="w-full bg-transparent border-none font-bold text-sm outline-none" value={formData.options[0]?.label || 'Yes'} onChange={(e) => {
+                                                            const o = [...formData.options];
+                                                            o[0] = { label: e.target.value, value: 'true' };
+                                                            setFormData({ ...formData, options: o });
+                                                        }} />
+                                                    </div>
+                                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">False State</label>
+                                                        <input className="w-full bg-transparent border-none font-bold text-sm outline-none" value={formData.options[1]?.label || 'No'} onChange={(e) => {
+                                                            const o = [...formData.options];
+                                                            o[1] = { label: e.target.value, value: 'false' };
+                                                            setFormData({ ...formData, options: o });
+                                                        }} />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <input placeholder="LABEL: e.g. SMALL" className="px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none" value={optionInput.label} onChange={(e) => setOptionInput({ ...optionInput, label: e.target.value.toUpperCase() })} />
+                                                        <input placeholder="VALUE: e.g. S" className="px-5 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-mono font-bold outline-none" value={optionInput.value} onChange={(e) => setOptionInput({ ...optionInput, value: e.target.value })} />
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {formData.options.map((opt, i) => (
+                                                            <div key={i} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-100 rounded-xl shadow-sm group">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-600">{opt.label}</span>
+                                                                <button type="button" onClick={() => setFormData({ ...formData, options: formData.options.filter((_, idx) => idx !== i) })} className="text-gray-300 hover:text-red-600 transition-colors"><X className="w-3 h-3" /></button>
+                                                            </div>
+                                                        ))}
+                                                        {formData.options.length === 0 && <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No entries defined</p>}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             )}
 
-                            {/* Clauses Editor */}
-                            <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-                                <div className="flex justify-between items-center mb-3">
-                                    <label className="block text-sm font-bold text-blue-900 flex items-center gap-2">
-                                        <Check className="w-4 h-4" /> Clauses (Dynamic Filtering & SEO)
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={addClause}
-                                        className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
-                                    >
-                                        <Plus className="w-3 h-3" /> Add Clause
-                                    </button>
+                            {activeTab === 'logic' && (
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-center">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Intelligent Clauses</label>
+                                        <button type="button" onClick={() => setFormData({ ...formData, clauses: [...formData.clauses, { name: '', label: '', operator: '=', value: [], prefix: '', suffix: '', seo_template: '', excluded_category_ids: [] }] })}
+                                            className="text-[10px] font-black text-blue-600 uppercase tracking-widest underline underline-offset-4">New Clause</button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {formData.clauses.map((clause, i) => (
+                                            <div key={i} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 space-y-4 relative group">
+                                                <button type="button" onClick={() => setFormData({ ...formData, clauses: formData.clauses.filter((_, idx) => idx !== i) })} className="absolute top-6 right-6 p-2 text-gray-300 hover:text-red-600 hover:bg-white rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
+
+                                                <div className="grid grid-cols-2 gap-4 pr-12">
+                                                    <div className="space-y-2">
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Label</label>
+                                                        <input className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-100" value={clause.label} onChange={(e) => updateClause(i, 'label', e.target.value)} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Condition</label>
+                                                        <div className="flex gap-2">
+                                                            <select className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-black outline-none" value={clause.operator} onChange={(e) => updateClause(i, 'operator', e.target.value)}>
+                                                                <option value="=">=</option>
+                                                                <option value=">">&gt;</option>
+                                                                <option value="<">&lt;</option>
+                                                                <option value="LIKE">LIKE</option>
+                                                            </select>
+                                                            <div className="flex-1">
+                                                                <ChipInput values={clause.value} onChange={(val) => updateClause(i, 'value', val)} placeholder="Values..." />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Prefix and Suffix */}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Prefix</label>
+                                                        <input
+                                                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-100"
+                                                            placeholder="e.g. 'Products with'"
+                                                            value={clause.prefix || ''}
+                                                            onChange={(e) => updateClause(i, 'prefix', e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Suffix</label>
+                                                        <input
+                                                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-100"
+                                                            placeholder="e.g. 'available'"
+                                                            value={clause.suffix || ''}
+                                                            onChange={(e) => updateClause(i, 'suffix', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Category Exclusions */}
+                                                <div className="pt-4 border-t border-gray-200/50">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <label className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Category Exclusions</label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setExclusionConfig({
+                                                                    clauseIndex: i,
+                                                                    excludedIds: clause.excluded_category_ids || []
+                                                                });
+                                                                setIsExclusionModalOpen(true);
+                                                            }}
+                                                            className="text-[10px] font-black text-blue-600 uppercase tracking-widest underline underline-offset-4 hover:text-blue-700"
+                                                        >
+                                                            {clause.excluded_category_ids?.length > 0
+                                                                ? `${clause.excluded_category_ids.length} Excluded`
+                                                                : 'Manage Exclusions'}
+                                                        </button>
+                                                    </div>
+                                                    {clause.excluded_category_ids?.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {categories
+                                                                .filter(cat => clause.excluded_category_ids.includes(cat.id))
+                                                                .map(cat => (
+                                                                    <span key={cat.id} className="text-[9px] font-black px-2 py-1 bg-red-50 border border-red-100 text-red-600 rounded-lg uppercase tracking-tight">
+                                                                        {cat.name}
+                                                                    </span>
+                                                                ))
+                                                            }
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="pt-4 border-t border-gray-200/50">
+                                                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">SEO Template</label>
+                                                    <textarea rows={2} className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-xs font-medium outline-none focus:ring-4 focus:ring-blue-100" placeholder="Meta content pattern..." value={clause.seo_template} onChange={(e) => updateClause(i, 'seo_template', e.target.value)} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {formData.clauses.length === 0 && (
+                                            <div className="text-center py-12 border-2 border-dashed border-gray-100 rounded-[2rem]">
+                                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No Dynamic Logic Defined</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
+                            )}
 
-                                <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-                                    {formData.clauses.map((clause, i) => (
-                                        <div key={i} className="bg-white p-3 rounded-lg border border-blue-200 relative group">
-                                            <button
-                                                type="button"
-                                                onClick={() => removeClause(i)}
-                                                className="absolute -top-2 -right-2 bg-red-100 text-red-600 p-1 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"
-                                            >
-                                                <X className="w-3 h-3" />
-                                            </button>
+                            {activeTab === 'links' && (
+                                <div className="space-y-6">
+                                    <div className="p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100">
+                                        <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Category Attachment</h4>
+                                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-6 leading-relaxed">Select contexts where this attribute should be active by default.</p>
 
-                                            <div className="grid grid-cols-2 gap-3 mb-2">
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Clause Label</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+                                            {categories.map(cat => (
+                                                <label key={cat.id} className={cn(
+                                                    "flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer",
+                                                    selectedCategories.includes(cat.id) ? "bg-white border-blue-200 shadow-sm" : "bg-white/40 border-gray-100 hover:border-blue-100"
+                                                )}>
                                                     <input
-                                                        type="text"
-                                                        placeholder="e.g. Under $30"
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={clause.label}
-                                                        onChange={(e) => updateClause(i, 'label', e.target.value)}
+                                                        type="checkbox"
+                                                        className="w-5 h-5 text-blue-600 rounded-lg border-gray-200 focus:ring-blue-500"
+                                                        checked={selectedCategories.includes(cat.id)}
+                                                        onChange={() => setSelectedCategories(prev => prev.includes(cat.id) ? prev.filter(id => id !== cat.id) : [...prev, cat.id])}
                                                     />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Internal Name</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="e.g. budget_30"
-                                                        className="w-full px-2 py-1 text-sm border rounded font-mono"
-                                                        value={clause.name}
-                                                        onChange={(e) => updateClause(i, 'name', e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-3 gap-2 mb-2">
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Operator</label>
-                                                    <select
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={clause.operator}
-                                                        onChange={(e) => updateClause(i, 'operator', e.target.value)}
-                                                    >
-                                                        <option value="=">=</option>
-                                                        <option value=">">&gt;</option>
-                                                        <option value="<">&lt;</option>
-                                                        <option value=">=">&gt;=</option>
-                                                        <option value="<=">&lt;=</option>
-                                                        <option value="LIKE">Contains (LIKE)</option>
-                                                    </select>
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Matching Value(s)</label>
-                                                    <ChipInput
-                                                        placeholder="Enter value..."
-                                                        values={clause.value}
-                                                        onChange={(val) => updateClause(i, 'value', val)}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-2 mb-2">
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Title Prefix</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Best "
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={clause.prefix}
-                                                        onChange={(e) => updateClause(i, 'prefix', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Title Suffix</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder=" for Summer"
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={clause.suffix}
-                                                        onChange={(e) => updateClause(i, 'suffix', e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">SEO Description Template</label>
-                                                <div className="flex gap-2 items-start">
-                                                    <textarea
-                                                        rows="2"
-                                                        placeholder="Use [Category], [Attribute], [Title] tags..."
-                                                        className="w-full px-2 py-1 text-sm border rounded"
-                                                        value={clause.seo_template}
-                                                        onChange={(e) => updateClause(i, 'seo_template', e.target.value)}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openExclusions(i)}
-                                                        className={`flex flex-col items-center gap-1 p-2 border rounded-lg hover:bg-gray-50 transition min-w-[80px] ${clause.excluded_category_ids?.length > 0 ? 'border-orange-200 bg-orange-50' : ''}`}
-                                                    >
-                                                        <Search className={`w-4 h-4 ${clause.excluded_category_ids?.length > 0 ? 'text-orange-600' : 'text-gray-400'}`} />
-                                                        <span className="text-[10px] uppercase font-bold text-gray-600">Exclude</span>
-                                                        {clause.excluded_category_ids?.length > 0 && (
-                                                            <span className="text-[10px] bg-orange-200 text-orange-800 px-1 rounded-full">
-                                                                {clause.excluded_category_ids.length}
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            </div>
+                                                    <span className="text-xs font-black uppercase tracking-widest text-gray-700 truncate">{cat.name}</span>
+                                                </label>
+                                            ))}
                                         </div>
-                                    ))}
-                                    {formData.clauses.length === 0 && (
-                                        <p className="text-center text-blue-300 text-xs py-4 border-2 border-dashed border-blue-100 rounded-lg">
-                                            No clauses defined. Add one to enable dynamic filtering.
-                                        </p>
-                                    )}
+                                    </div>
                                 </div>
-                            </div>
-
-                            {/* Category Linking */}
-                            <div className="border-t pt-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <LinkIcon className="w-4 h-4" /> Link to Categories
-                                </label>
-                                <p className="text-xs text-gray-500 mb-2">Select categories to automatically attach this attribute to. (Existing links are reserved)</p>
-                                <div className="max-h-40 overflow-y-auto border rounded-lg p-2 bg-gray-50 grid grid-cols-2 gap-2">
-                                    {categories.map(cat => (
-                                        <label key={cat.id} className="flex items-center gap-2 p-2 bg-white rounded border hover:border-blue-300 cursor-pointer text-sm">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedCategories.includes(cat.id)}
-                                                onChange={() => toggleCategorySelection(cat.id)}
-                                                className="text-blue-600 rounded"
-                                            />
-                                            <span className="truncate">{cat.name}</span>
-                                        </label>
-                                    ))}
-                                    {categories.length === 0 && <p className="col-span-2 text-center text-gray-400 text-xs p-2">No categories found</p>}
-                                </div>
-                            </div>
-
+                            )}
                         </form>
-                        <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setIsCreateModalOpen(false)}
-                                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                            >
-                                {editingAttribute ? 'Save Changes' : 'Create Attribute'}
-                            </button>
+
+                        <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex gap-4">
+                            <button type="submit" onClick={handleSubmit} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-500/10">Publish Definition</button>
+                            <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-10 py-4 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition">Discard</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Exclusion Modal */}
+            {/* Category Exclusion Modal */}
             {isExclusionModalOpen && (
-                <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-                        <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+                <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-200">
+                        <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <div>
-                                <h4 className="font-bold text-gray-900">Category Exclusions</h4>
-                                <p className="text-xs text-gray-500">Stop this clause from appearing in specific categories or their children.</p>
+                                <h3 className="text-2xl font-black text-gray-900">Category Exclusions</h3>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Select categories to exclude from this clause</p>
                             </div>
-                            <button onClick={() => setIsExclusionModalOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {affectedCategories.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <ImageIcon className="w-6 h-6 text-gray-300" />
-                                    </div>
-                                    <p className="text-gray-500 text-sm italic">This attribute isn't linked to any categories yet.</p>
-                                </div>
-                            ) : (
-                                affectedCategories.map(cat => (
-                                    <div
-                                        key={cat.id}
-                                        className={`flex justify-between items-center p-3 rounded-lg border transition cursor-pointer group ${exclusionConfig.excludedIds.includes(cat.id) ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100 hover:border-blue-200'}`}
-                                        onClick={() => toggleExclusion(cat.id)}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-sm">
-                                                <p className={`font-medium ${exclusionConfig.excludedIds.includes(cat.id) ? 'text-orange-900' : 'text-gray-900'}`}>
-                                                    {cat.name}
-                                                </p>
-                                                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Depth: {cat.depth} {cat.is_direct ? '• Direct' : '• Inherited'}</p>
-                                            </div>
-                                        </div>
-                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition ${exclusionConfig.excludedIds.includes(cat.id) ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 bg-white group-hover:border-blue-400'}`}>
-                                            {exclusionConfig.excludedIds.includes(cat.id) && <X className="w-3 h-3" />}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                        <div className="p-4 bg-gray-50 border-t flex justify-center">
                             <button
                                 onClick={() => setIsExclusionModalOpen(false)}
-                                className="px-6 py-2 bg-gray-900 text-white rounded-lg text-sm font-bold shadow-lg hover:bg-black transition"
+                                className="p-2 text-gray-400 hover:text-gray-900 transition-colors"
                             >
-                                Done
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {categories.map(cat => (
+                                    <label
+                                        key={cat.id}
+                                        className={cn(
+                                            "flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer",
+                                            exclusionConfig.excludedIds.includes(cat.id)
+                                                ? "bg-red-50 border-red-200 shadow-sm"
+                                                : "bg-white border-gray-100 hover:border-red-100"
+                                        )}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            className="w-5 h-5 text-red-600 rounded-lg border-gray-200 focus:ring-red-500"
+                                            checked={exclusionConfig.excludedIds.includes(cat.id)}
+                                            onChange={() => {
+                                                setExclusionConfig(prev => ({
+                                                    ...prev,
+                                                    excludedIds: prev.excludedIds.includes(cat.id)
+                                                        ? prev.excludedIds.filter(id => id !== cat.id)
+                                                        : [...prev.excludedIds, cat.id]
+                                                }));
+                                            }}
+                                        />
+                                        <span className="text-xs font-black uppercase tracking-widest text-gray-700 truncate">
+                                            {cat.name}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex gap-4">
+                            <button
+                                onClick={() => {
+                                    const newClauses = [...formData.clauses];
+                                    newClauses[exclusionConfig.clauseIndex] = {
+                                        ...newClauses[exclusionConfig.clauseIndex],
+                                        excluded_category_ids: exclusionConfig.excludedIds
+                                    };
+                                    setFormData({ ...formData, clauses: newClauses });
+                                    setIsExclusionModalOpen(false);
+                                }}
+                                className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-500/10"
+                            >
+                                Apply Exclusions
+                            </button>
+                            <button
+                                onClick={() => setIsExclusionModalOpen(false)}
+                                className="px-10 py-4 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition"
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>

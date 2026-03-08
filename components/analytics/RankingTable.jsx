@@ -49,8 +49,8 @@ const RankingTable = ({ data, loading, title = "Leaderboard & Relative Ranking" 
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-full flex flex-col">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
+        <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden h-full flex flex-col">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
                 <div>
                     <h3 className="font-bold text-gray-900">{title}</h3>
                     <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Top {data.length} Results By Engagement</p>
@@ -65,13 +65,13 @@ const RankingTable = ({ data, loading, title = "Leaderboard & Relative Ranking" 
                 <table className="w-full text-left">
                     <thead>
                         <tr className="bg-gray-50/50">
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor Rank</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Market Rank</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Entity</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Page Views</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Impressions</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Clicks</th>
-                            <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right w-48">CTR (%)</th>
+                            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor Rank</th>
+                            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Market Rank</th>
+                            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Entity</th>
+                            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Page Views</th>
+                            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Impressions</th>
+                            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Clicks</th>
+                            <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right w-48">CTR (%)</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -84,7 +84,7 @@ const RankingTable = ({ data, loading, title = "Leaderboard & Relative Ranking" 
                                         expandedId === `${item.entity_type}-${item.entity_id}` && "bg-blue-50/30"
                                     )}
                                 >
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-4 py-4 whitespace-nowrap">
                                         {item.vendor_rank ? (
                                             <div className="flex items-center gap-2">
                                                 <span className={cn(
@@ -102,7 +102,7 @@ const RankingTable = ({ data, loading, title = "Leaderboard & Relative Ranking" 
                                             <span className="text-[10px] font-bold text-gray-300 uppercase italic">Global Only</span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-4 py-4 whitespace-nowrap">
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-sm font-bold text-gray-900">#{item.global_rank}</span>
@@ -113,7 +113,7 @@ const RankingTable = ({ data, loading, title = "Leaderboard & Relative Ranking" 
                                             <span className="text-[10px] text-gray-400">vs {item.total_in_type} entities</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-4 py-4 whitespace-nowrap">
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-semibold text-gray-900 truncate max-w-[200px]" title={item.entity_name || item.entity_id}>
@@ -129,16 +129,16 @@ const RankingTable = ({ data, loading, title = "Leaderboard & Relative Ranking" 
                                             <span className="text-[10px] text-gray-400 font-mono">ID: {item.entity_id.slice(0, 12)}...</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-blue-600 font-bold tabular-nums">
+                                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-blue-600 font-bold tabular-nums">
                                         {parseInt(item.page_views || 0).toLocaleString()}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600 tabular-nums">
+                                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-600 tabular-nums">
                                         {parseInt(item.impressions || 0).toLocaleString()}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-800 font-bold tabular-nums">
+                                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-800 font-bold tabular-nums">
                                         {parseInt(item.clicks || 0).toLocaleString()}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-4 py-4 whitespace-nowrap">
                                         <div className="flex flex-col gap-1 items-end">
                                             <div className="flex items-center gap-2">
                                                 {parseFloat(item.ctr) > 5 && <span className="text-[10px] text-green-600 font-bold animate-pulse">HOT 🔥</span>}

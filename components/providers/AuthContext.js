@@ -11,10 +11,14 @@ export function AuthProvider({ children }) {
     const [roles, setRoles] = useState([]);
     const [allowedCategories, setAllowedCategories] = useState([]);
     const [hasUnrestrictedCategoryAccess, setHasUnrestrictedCategoryAccess] = useState(true);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false); // DISABLED - was true
+    const [minSplashActive, setMinSplashActive] = useState(false); // DISABLED - was true
     const router = useRouter();
 
     useEffect(() => {
+        // Enforce branding visibility - DISABLED
+        // const timer = setTimeout(() => setMinSplashActive(false), 3000);
+
         // Check if user is logged in on mount
         if (typeof window !== 'undefined') {
             const token = localStorage.getItem('token');
@@ -26,37 +30,15 @@ export function AuthProvider({ children }) {
 
             if (token && userData) {
                 setUser(JSON.parse(userData));
-
-                if (permsData) {
-                    try {
-                        setPermissions(JSON.parse(permsData));
-                    } catch (e) {
-                        setPermissions([]);
-                    }
-                }
-
-                if (rolesData) {
-                    try {
-                        setRoles(JSON.parse(rolesData));
-                    } catch (e) {
-                        setRoles([]);
-                    }
-                }
-
-                if (categoriesData) {
-                    try {
-                        setAllowedCategories(JSON.parse(categoriesData));
-                    } catch (e) {
-                        setAllowedCategories([]);
-                    }
-                }
-
-                if (unrestrictedAccess !== null) {
-                    setHasUnrestrictedCategoryAccess(unrestrictedAccess === 'true');
-                }
+                if (permsData) try { setPermissions(JSON.parse(permsData)); } catch (e) { setPermissions([]); }
+                if (rolesData) try { setRoles(JSON.parse(rolesData)); } catch (e) { setRoles([]); }
+                if (categoriesData) try { setAllowedCategories(JSON.parse(categoriesData)); } catch (e) { setAllowedCategories([]); }
+                if (unrestrictedAccess !== null) setHasUnrestrictedCategoryAccess(unrestrictedAccess === 'true');
             }
-            setLoading(false);
+            // setLoading(false); // Already false by default now
         }
+
+        // return () => clearTimeout(timer);
     }, []);
 
     const login = (token, userData, userPerms = [], userRoles = [], categories = [], unrestrictedAccess = true, refreshToken = null) => {
@@ -76,6 +58,10 @@ export function AuthProvider({ children }) {
         setRoles(userRoles);
         setAllowedCategories(categories);
         setHasUnrestrictedCategoryAccess(unrestrictedAccess);
+
+        // Flag to skip the dashboard-data splash screen immediately after login
+        sessionStorage.setItem('skip-dashboard-splash', 'true');
+
         router.push('/dashboard');
     };
 
@@ -96,6 +82,9 @@ export function AuthProvider({ children }) {
         router.push('/auth/login');
     };
 
+    const [globalLoading, setGlobalLoading] = useState(false); // DISABLED - prevents all loading screens
+    const [loadingMessage, setLoadingMessage] = useState("Preparing Dashboard...");
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -104,6 +93,11 @@ export function AuthProvider({ children }) {
             allowedCategories,
             hasUnrestrictedCategoryAccess,
             loading,
+            minSplashActive,
+            globalLoading,
+            setGlobalLoading,
+            loadingMessage,
+            setLoadingMessage,
             login,
             logout
         }}>

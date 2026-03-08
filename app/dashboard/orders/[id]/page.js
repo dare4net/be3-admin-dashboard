@@ -92,7 +92,7 @@ export default function OrderDetailsPage() {
                 </div>
 
                 {/* Status Actions */}
-                <div className="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center gap-3 bg-white p-2 rounded-lg shadow-none border border-gray-100">
                     <span className="text-sm font-medium text-gray-700 pl-2">Status:</span>
                     <select
                         value={status}
@@ -121,7 +121,7 @@ export default function OrderDetailsPage() {
                 {/* Main Content */}
                 <div className="md:col-span-2 space-y-6">
                     {/* Items */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-100 font-medium text-gray-900 flex items-center gap-2">
                             <Package className="w-5 h-5 text-gray-400" />
                             Order Items
@@ -162,7 +162,7 @@ export default function OrderDetailsPage() {
                     </div>
 
                     {/* Timeline (Placeholder) */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-lg shadow-none border border-gray-100 p-5">
                         <h3 className="font-medium text-gray-900 mb-4">Order Timeline</h3>
                         <div className="space-y-4">
                             <div className="flex gap-3">
@@ -188,7 +188,7 @@ export default function OrderDetailsPage() {
                 {/* Sidebar Info */}
                 <div className="space-y-6">
                     {/* Customer */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-lg shadow-none border border-gray-100 p-5">
                         <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
                             <User className="w-4 h-4 text-gray-400" />
                             Customer
@@ -204,8 +204,8 @@ export default function OrderDetailsPage() {
                         </div>
                     </div>
 
-                    {/* Shipping Address (Placeholder if missing in DB schema currently) */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    {/* Shipping Address */}
+                    <div className="bg-white rounded-lg shadow-none border border-gray-100 p-5">
                         <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-gray-400" />
                             Shipping
@@ -217,7 +217,7 @@ export default function OrderDetailsPage() {
                     </div>
 
                     {/* Payment */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div className="bg-white rounded-lg shadow-none border border-gray-100 p-5">
                         <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
                             <CreditCard className="w-4 h-4 text-gray-400" />
                             Payment

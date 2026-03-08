@@ -8,8 +8,8 @@ const SurfaceHeatmap = ({ data, loading }) => {
     const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="mb-6">
+        <div className="bg-white rounded-lg shadow-none border border-gray-100 p-4">
+            <div className="mb-4">
                 <h3 className="font-semibold text-gray-900">Traffic Heatmap</h3>
                 <p className="text-sm text-gray-500">Distribution of clicks across storefront locations</p>
             </div>

@@ -95,7 +95,7 @@ export default function OrdersPage() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-4">
+            <div className="bg-white p-4 rounded-lg shadow-none border border-gray-100 flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -124,8 +124,8 @@ export default function OrdersPage() {
                 </div>
             </div>
 
-            {/* Orders Table */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* Desktop Orders Table */}
+            <div className="hidden md:block bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-700 font-medium border-b">
@@ -193,7 +193,57 @@ export default function OrdersPage() {
                         </tbody>
                     </table>
                 </div>
+            </div>
 
+            {/* Mobile Card List */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="bg-white p-12 rounded-lg border border-gray-200 text-center">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-600" />
+                        <p className="text-gray-500">Loading orders...</p>
+                    </div>
+                ) : orders.length === 0 ? (
+                    <div className="bg-white p-8 rounded-lg border border-gray-200 text-center">
+                        <p className="text-gray-500">No orders found.</p>
+                    </div>
+                ) : (
+                    orders.map((order) => (
+                        <div
+                            key={order.id}
+                            onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+                            className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm active:bg-gray-50 transition-colors"
+                        >
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <p className="text-sm font-bold text-blue-600">{order.order_number}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{new Date(order.created_at).toLocaleDateString()} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                    ${order.status === 'paid' ? 'bg-green-100 text-green-700' :
+                                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                            order.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
+                                                order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                    'bg-gray-100 text-gray-700'
+                                    }`}>
+                                    {order.status}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-end">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900">{order.customer_email || 'Guest'}</p>
+                                    {order.user_id && <p className="text-[10px] text-gray-400 uppercase font-bold">Member</p>}
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-lg font-black text-gray-900">${parseFloat(order.total).toFixed(2)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Shared Pagination */}
+            <div className="bg-white rounded-lg shadow-none border border-gray-100 mt-6">
                 {/* Pagination */}
                 {!loading && pagination.total > 0 && (
                     <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
