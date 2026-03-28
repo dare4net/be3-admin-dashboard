@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import api from "@/lib/axios";
 import {
     Plus, Edit2, Trash2, Folder, ChevronRight, ChevronDown, Package,
@@ -28,6 +29,8 @@ export default function CategoriesPage() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCreateProductModalOpen, setIsCreateProductModalOpen] = useState(false);
+    const [isAttrRelModalOpen, setIsAttrRelModalOpen] = useState(false);
+    const [selectedAttrRel, setSelectedAttrRel] = useState(null);
     const [editingCategory, setEditingCategory] = useState(null);
     const [activeTab, setActiveTab] = useState('general');
 
@@ -201,12 +204,20 @@ export default function CategoriesPage() {
             for (const attrId of toRemove) {
                 await api.delete(`/products/categories/${categoryId}/attributes/${attrId}`);
             }
+            // Save attributes with Smart Sync logic
             for (const attr of linkedAttributes) {
-                await api.post(`/products/categories/${categoryId}/attributes`, {
-                    attribute_id: attr.attribute_id,
-                    is_required: attr.is_required,
-                    is_ignored: attr.is_ignored
-                });
+                const shouldDelete = (attr.is_ignored && !attr.is_inherited) || 
+                                   (!attr.is_ignored && attr.is_inherited);
+                
+                if (shouldDelete) {
+                    await api.delete(`/products/categories/${categoryId}/attributes/${attr.attribute_id}`);
+                } else {
+                    await api.post(`/products/categories/${categoryId}/attributes`, {
+                        attribute_id: attr.attribute_id,
+                        is_required: attr.is_required,
+                        is_ignored: attr.is_ignored
+                    });
+                }
             }
 
             await fetchInitialData();
@@ -231,6 +242,42 @@ export default function CategoriesPage() {
             await fetchInitialData();
         } catch (error) {
             alert('Failed to delete category.');
+        }
+    };
+    
+    const handleEditAttributeRel = (attribute) => {
+        setSelectedAttrRel({
+            ...attribute,
+            is_required: attribute.is_required,
+            is_ignored: attribute.is_ignored
+        });
+        setIsAttrRelModalOpen(true);
+    };
+
+    const handleSaveAttributeRel = async () => {
+        if (!selectedAttrRel || !categoryDetails) return;
+        try {
+            // Smart Sync Logic:
+            // 1. If it's a DIRECT link and we are unlinking it, DELETE it.
+            // 2. If it's an INHERITED link and we are re-linking it (is_ignored = false), DELETE it.
+            //    (De-linking the local override record restores the natural parent inheritance)
+            const shouldDelete = (selectedAttrRel.is_ignored && !selectedAttrRel.is_inherited) || 
+                               (!selectedAttrRel.is_ignored && selectedAttrRel.is_inherited);
+
+            if (shouldDelete) {
+                await api.delete(`/products/categories/${categoryDetails.id}/attributes/${selectedAttrRel.id}`);
+            } else {
+                await api.post(`/products/categories/${categoryDetails.id}/attributes`, {
+                    attribute_id: selectedAttrRel.id,
+                    is_required: selectedAttrRel.is_required,
+                    is_ignored: selectedAttrRel.is_ignored
+                });
+            }
+            setIsAttrRelModalOpen(false);
+            handleSelectCategory(selectedCategory);
+        } catch (error) {
+            console.error(error);
+            alert('Failed to update attribute relationship');
         }
     };
 
@@ -503,9 +550,9 @@ export default function CategoriesPage() {
                                                                 <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
                                                                     <Trash2 className="w-4 h-4" />
                                                                 </button>
-                                                                <a href={`/dashboard/products/${product.id}/edit`} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                                <Link href={`/dashboard/products/${product.id}/edit`} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
                                                                     <Edit2 className="w-4 h-4" />
-                                                                </a>
+                                                                </Link>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -565,7 +612,12 @@ export default function CategoriesPage() {
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                        <Settings className="w-4 h-4 text-gray-200 group-hover:text-blue-600 transition-colors" />
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleEditAttributeRel(attr); }}
+                                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100 group"
+                                                                >
+                                                                    <Settings className="w-4 h-4 text-gray-200 group-hover:text-blue-600 transition-colors" />
+                                                                </button>
                                                     </div>
                                                 ))}
                                                 {categoryDetails.attributes?.filter(a => !a.is_ignored).length === 0 && (
@@ -585,6 +637,30 @@ export default function CategoriesPage() {
             </div>
 
             {/* Reuse Modals (Simplified here for focus, you'd keep original if logic is needed) */}
+            {isCreateProductModalOpen && (
+                <div className="fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-200">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-900">Insert Product</h3>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Under {categoryDetails?.name}</p>
+                            </div>
+                            <button onClick={() => setIsCreateProductModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-900 transition-all"><X className="w-6 h-6" /></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <ProductForm 
+                                categoryId={categoryDetails?.id} 
+                                onSuccess={() => {
+                                    setIsCreateProductModalOpen(false);
+                                    fetchPaginatedProducts(1);
+                                }} 
+                                onCancel={() => setIsCreateProductModalOpen(false)} 
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-200">
@@ -661,7 +737,7 @@ export default function CategoriesPage() {
                                     <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-4">
                                         <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Linked Attributes</h4>
                                         <div className="space-y-2">
-                                            {linkedAttributes.map((attr, idx) => {
+                                            {linkedAttributes.filter(attr => !attr.is_ignored).map((attr, idx) => {
                                                 const masterAttr = attributes.find(a => a.id === attr.attribute_id);
                                                 return (
                                                     <div key={idx} className="flex items-center justify-between p-3 bg-white border border-blue-200 rounded-xl group transition-all">
@@ -699,8 +775,20 @@ export default function CategoriesPage() {
                                     <div className="space-y-4">
                                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Available from Master</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            {attributes.filter(a => !linkedAttributes.some(l => l.attribute_id === a.id)).map(a => (
-                                                <button key={a.id} type="button" onClick={() => setLinkedAttributes([...linkedAttributes, { attribute_id: a.id, is_required: false, is_ignored: false }])}
+                                            {attributes.filter(a => {
+                                                const link = linkedAttributes.find(l => l.attribute_id === a.id);
+                                                return !link || link.is_ignored;
+                                            }).map(a => (
+                                                <button key={a.id} type="button" onClick={() => {
+                                                    const existing = linkedAttributes.find(l => l.attribute_id === a.id);
+                                                    if (existing) {
+                                                        // Reactivate an ignored link
+                                                        setLinkedAttributes(linkedAttributes.map(l => l.attribute_id === a.id ? { ...l, is_ignored: false } : l));
+                                                    } else {
+                                                        // Add a brand new link
+                                                        setLinkedAttributes([...linkedAttributes, { attribute_id: a.id, is_required: false, is_ignored: false }]);
+                                                    }
+                                                }}
                                                     className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 group text-left transition-all">
                                                     <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-white transition-colors">
                                                         <Tag className="w-4 h-4" />
@@ -723,6 +811,95 @@ export default function CategoriesPage() {
                         <div className="p-6 border-t border-gray-100 flex gap-4 bg-gray-50/50">
                             <button type="submit" onClick={handleSubmit} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/10">Commit Changes</button>
                             <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">Discard</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Attribute Relationship Modal */}
+            {isAttrRelModalOpen && selectedAttrRel && (
+                <div className="fixed inset-0 z-[110] bg-gray-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-gray-100">
+                        <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                                    <Tag className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-900">Field Settings</h3>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Schema Relationship</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsAttrRelModalOpen(false)} className="p-3 text-gray-400 hover:text-gray-900 bg-white border border-gray-100 rounded-2xl transition-all"><X className="w-6 h-6" /></button>
+                        </div>
+
+                        <div className="p-8 space-y-8">
+                            {/* Context Card */}
+                            <div className="p-4 bg-gray-50 rounded-3xl border border-gray-100">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Attribute</span>
+                                <div className="flex items-center gap-3">
+                                    <span className="font-bold text-gray-900">{selectedAttrRel.label}</span>
+                                    <span className="text-[9px] px-2 py-0.5 bg-white border border-gray-100 rounded-full font-black text-gray-400 uppercase tracking-widest uppercase">{selectedAttrRel.type}</span>
+                                </div>
+                                <div className="mt-3 flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest leading-none">Context:</span>
+                                    <span className={cn(
+                                        "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border",
+                                        selectedAttrRel.is_inherited ? "bg-purple-50 text-purple-600 border-purple-100" : "bg-blue-50 text-blue-600 border-blue-100"
+                                    )}>
+                                        {selectedAttrRel.is_inherited ? `Inherited from ${selectedAttrRel.source_category_name || 'Parent'}` : 'Direct Mapping'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Property Toggles */}
+                            <div className="space-y-4">
+                                <div 
+                                    onClick={() => setSelectedAttrRel(prev => ({ ...prev, is_required: !prev.is_required }))}
+                                    className={cn(
+                                        "p-5 rounded-3xl border transition-all cursor-pointer flex items-center justify-between group",
+                                        selectedAttrRel.is_required ? "bg-white border-blue-600 shadow-sm" : "bg-white border-gray-100 hover:border-blue-200"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center transition-colors", selectedAttrRel.is_required ? "bg-blue-600 text-white" : "bg-gray-50 text-gray-300 group-hover:text-blue-400")}>
+                                            <Settings className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <span className="block font-black text-xs text-gray-900 uppercase tracking-widest">Require Field</span>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-1">Make this field mandatory</p>
+                                        </div>
+                                    </div>
+                                    <div className={cn("w-10 h-6 rounded-full relative transition-colors p-1", selectedAttrRel.is_required ? "bg-blue-600" : "bg-gray-100")}>
+                                        <div className={cn("w-4 h-4 bg-white rounded-full transition-transform", selectedAttrRel.is_required ? "translate-x-4" : "translate-x-0")} />
+                                    </div>
+                                </div>
+
+                                <div 
+                                    onClick={() => setSelectedAttrRel(prev => ({ ...prev, is_ignored: !prev.is_ignored }))}
+                                    className={cn(
+                                        "p-5 rounded-3xl border transition-all cursor-pointer flex items-center justify-between group",
+                                        selectedAttrRel.is_ignored ? "bg-white border-red-600 shadow-sm" : "bg-white border-gray-100 hover:border-red-200"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center transition-colors", selectedAttrRel.is_ignored ? "bg-red-600 text-white" : "bg-gray-50 text-gray-300 group-hover:text-red-400")}>
+                                            <X className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <span className="block font-black text-xs text-gray-900 uppercase tracking-widest text-red-600">Unlink Field</span>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-1">Remove or ignore this field</p>
+                                        </div>
+                                    </div>
+                                    <div className={cn("w-10 h-6 rounded-full relative transition-colors p-1", selectedAttrRel.is_ignored ? "bg-red-600" : "bg-gray-100")}>
+                                        <div className={cn("w-4 h-4 bg-white rounded-full transition-transform", selectedAttrRel.is_ignored ? "translate-x-4" : "translate-x-0")} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 border-t border-gray-100 flex gap-3 bg-gray-50/50">
+                            <button onClick={handleSaveAttributeRel} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20">Update Field Registry</button>
+                            <button onClick={() => setIsAttrRelModalOpen(false)} className="px-6 py-4 bg-white border border-gray-200 text-gray-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">Discard</button>
                         </div>
                     </div>
                 </div>
