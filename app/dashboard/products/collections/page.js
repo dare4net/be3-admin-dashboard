@@ -156,14 +156,15 @@ export default function CollectionsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 leading-none">Collections</h1>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2">Dynamic Merchandising Sets</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2">Dynamic Product Sets</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2">Product Collections</p>
                 </div>
                 <button
                     onClick={handleCreate}
                     className="flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/10 text-[11px] font-black uppercase tracking-widest"
                 >
                     <Plus className="w-5 h-5" />
-                    New Curated Set
+                    New Collection
                 </button>
             </div>
 
@@ -209,7 +210,7 @@ export default function CollectionsPage() {
                                             <div>
                                                 <p className="font-bold text-sm text-gray-900 leading-tight">{col.name}</p>
                                                 <div className="flex items-center gap-2 mt-1 underline-offset-4">
-                                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter sm:hidden">{col.rules?.length || 0} LOGIC HOOKS</span>
+                                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter sm:hidden">{col.rules?.length || 0} RULES</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -261,7 +262,7 @@ export default function CollectionsPage() {
                                 <Package className="w-7 h-7" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-black text-gray-900 leading-none">Scanning curated set: {previewCollection.name}</h3>
+                                <h3 className="text-xl font-black text-gray-900 leading-none">Scanning collection: {previewCollection.name}</h3>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 flex items-center gap-2">
                                     <Filter className="w-3 h-3" /> Live results for {previewCollection.rules?.length || 0} active conditions
                                 </p>
@@ -312,8 +313,8 @@ export default function CollectionsPage() {
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-gray-200 overflow-hidden">
                         <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <div>
-                                <h2 className="text-3xl font-black text-gray-900 leading-none">{editingCollection ? 'Update' : 'Blueprint'} Curated Set</h2>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2">Curatorial Engineering</p>
+                                <h2 className="text-3xl font-black text-gray-900 leading-none">{editingCollection ? 'Update' : 'Blueprint'} Collection</h2>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-2">Collection Settings</p>
                             </div>
                             <button onClick={() => setIsEditModalOpen(false)} className="p-3 text-gray-400 hover:text-gray-900 transition-colors bg-white rounded-2xl border border-gray-100 shadow-sm"><X className="w-7 h-7" /></button>
                         </div>
@@ -349,9 +350,9 @@ export default function CollectionsPage() {
                                         </div>
                                     </div>
                                     <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Curator's Notes / Description</label>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
                                         <textarea rows={3} className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[1.5rem] text-sm leading-relaxed focus:ring-8 focus:ring-blue-100 outline-none transition-all"
-                                            value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Public facing summary for this curated collection..." />
+                                            value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Public facing summary for this collection..." />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-3">
@@ -372,9 +373,9 @@ export default function CollectionsPage() {
                                 <div className="space-y-8">
                                     <div className="flex justify-between items-center">
                                         <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <BarChart3 className="w-4 h-4" /> Conditional Logic Engine
+                                            <BarChart3 className="w-4 h-4" /> Collection Rules
                                         </h3>
-                                        <button type="button" onClick={addRule} className="text-[10px] font-black text-blue-600 uppercase tracking-widest underline underline-offset-8 decoration-2">Add Logical Hook</button>
+                                        <button type="button" onClick={addRule} className="text-[10px] font-black text-blue-600 uppercase tracking-widest underline underline-offset-8 decoration-2">Add Rule</button>
                                     </div>
 
                                     <div className="space-y-4">
@@ -386,12 +387,12 @@ export default function CollectionsPage() {
                                                 <div className="flex flex-wrap gap-4 flex-1 pr-12">
                                                     <select className="px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none shadow-sm"
                                                         value={rule.field} onChange={e => updateRule(i, 'field', e.target.value)}>
-                                                        <option value="category">Class</option>
-                                                        <option value="tag">Marker</option>
-                                                        <option value="price">Valuation</option>
-                                                        <option value="has_attribute">Presence</option>
-                                                        <option value="attribute">Property</option>
-                                                        <option value="attribute_clause">Logic Block</option>
+                                                        <option value="category">Category</option>
+                                                        <option value="tag">Tag</option>
+                                                        <option value="price">Price</option>
+                                                        <option value="has_attribute">Has Attribute</option>
+                                                        <option value="attribute">Attribute</option>
+                                                        <option value="attribute_clause">Attribute Clause</option>
                                                     </select>
 
                                                     {['attribute', 'attribute_clause', 'has_attribute'].includes(rule.field) && (
@@ -425,6 +426,23 @@ export default function CollectionsPage() {
                                                                     </label>
                                                                 ))}
                                                             </div>
+                                                        ) : rule.field === 'price' ? (
+                                                            <div className="flex-1 flex gap-2">
+                                                                <select className="px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none shadow-sm"
+                                                                    value={rule.operator || 'gt'} onChange={e => updateRule(i, 'operator', e.target.value)}>
+                                                                    {OPERATORS.price.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                                                                </select>
+                                                                <input className="flex-1 px-5 py-3.5 bg-white border border-gray-100 rounded-2xl text-xs font-bold shadow-sm outline-none"
+                                                                    type="number" placeholder="Value..." value={rule.value || ''} onChange={e => updateRule(i, 'value', e.target.value)} />
+                                                            </div>
+                                                        ) : rule.field === 'attribute_clause' ? (
+                                                            <select className="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-2xl text-xs font-bold shadow-sm outline-none"
+                                                                value={rule.value || ''} onChange={e => updateRule(i, 'value', e.target.value)}>
+                                                                <option value="">Select Clause...</option>
+                                                                {attributes.find(a => a.code === rule.attribute_code)?.clauses?.map(c => (
+                                                                    <option key={c.name} value={c.name}>{c.name}</option>
+                                                                ))}
+                                                            </select>
                                                         ) : (
                                                             <input className="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-2xl text-xs font-bold shadow-sm outline-none"
                                                                 placeholder="Target match..." value={rule.value || ''} onChange={e => updateRule(i, 'value', e.target.value)} />
@@ -436,7 +454,7 @@ export default function CollectionsPage() {
                                         {formData.rules.length === 0 && (
                                             <div className="py-20 bg-gray-50/50 rounded-[3rem] border-2 border-dashed border-gray-100 text-center">
                                                 <BarChart3 className="w-16 h-16 mx-auto mb-6 text-gray-100" />
-                                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No Curatorial Conditions Found</p>
+                                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No Rules Defined</p>
                                             </div>
                                         )}
                                     </div>
@@ -474,7 +492,7 @@ export default function CollectionsPage() {
                                 </div>
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Public Deployment</span>
                             </label>
-                            <button type="submit" onClick={handleSubmit} className="px-12 py-5 bg-blue-600 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-xl shadow-blue-500/10">Deploy Set</button>
+                            <button type="submit" onClick={handleSubmit} className="px-12 py-5 bg-blue-600 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-xl shadow-blue-500/10">Deploy Collection</button>
                             <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-10 py-5 bg-white border border-gray-200 text-gray-400 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition">Discard</button>
                         </div>
                     </div>
