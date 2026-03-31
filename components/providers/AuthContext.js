@@ -11,13 +11,13 @@ export function AuthProvider({ children }) {
     const [roles, setRoles] = useState([]);
     const [allowedCategories, setAllowedCategories] = useState([]);
     const [hasUnrestrictedCategoryAccess, setHasUnrestrictedCategoryAccess] = useState(true);
-    const [loading, setLoading] = useState(false); // DISABLED - was true
-    const [minSplashActive, setMinSplashActive] = useState(false); // DISABLED - was true
+    const [loading, setLoading] = useState(true); // Default to true to prevent race condition
+    const [minSplashActive, setMinSplashActive] = useState(true); // Default to true for branding
     const router = useRouter();
 
     useEffect(() => {
-        // Enforce branding visibility - DISABLED
-        // const timer = setTimeout(() => setMinSplashActive(false), 3000);
+        // Enforce branding visibility
+        const timer = setTimeout(() => setMinSplashActive(false), 2000);
 
         // Check if user is logged in on mount
         if (typeof window !== 'undefined') {
@@ -29,16 +29,21 @@ export function AuthProvider({ children }) {
             const unrestrictedAccess = localStorage.getItem('hasUnrestrictedCategoryAccess');
 
             if (token && userData) {
-                setUser(JSON.parse(userData));
-                if (permsData) try { setPermissions(JSON.parse(permsData)); } catch (e) { setPermissions([]); }
-                if (rolesData) try { setRoles(JSON.parse(rolesData)); } catch (e) { setRoles([]); }
-                if (categoriesData) try { setAllowedCategories(JSON.parse(categoriesData)); } catch (e) { setAllowedCategories([]); }
-                if (unrestrictedAccess !== null) setHasUnrestrictedCategoryAccess(unrestrictedAccess === 'true');
+                try {
+                    setUser(JSON.parse(userData));
+                    if (permsData) setPermissions(JSON.parse(permsData));
+                    if (rolesData) setRoles(JSON.parse(rolesData));
+                    if (categoriesData) setAllowedCategories(JSON.parse(categoriesData));
+                    if (unrestrictedAccess !== null) setHasUnrestrictedCategoryAccess(unrestrictedAccess === 'true');
+                } catch (e) {
+                    console.error("Auth initialization error:", e);
+                    logout(); // Clear potentially corrupted data
+                }
             }
-            // setLoading(false); // Already false by default now
+            setLoading(false); // Signal that initial auth check is complete
         }
 
-        // return () => clearTimeout(timer);
+        return () => clearTimeout(timer);
     }, []);
 
     const login = (token, userData, userPerms = [], userRoles = [], categories = [], unrestrictedAccess = true, refreshToken = null) => {

@@ -94,14 +94,25 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
         }
     };
 
+    const generateSKU = (name) => {
+        const prefix = name ? name.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') : 'PRD';
+        const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+        return `${prefix}-${random}`;
+    };
+
     const handleNameChange = (name) => {
         const handle = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        setFormData(prev => ({
-            ...prev,
-            name,
-            handle: prev.handle || handle,
-            og_title: prev.og_title || name
-        }));
+        setFormData(prev => {
+            // Only auto-generate if SKU is currently empty AND the name is long enough to provide a good prefix (3+ chars)
+            const shouldAutoGenerate = !prev.sku && name.trim().length >= 3;
+            return {
+                ...prev,
+                name,
+                sku: shouldAutoGenerate ? generateSKU(name) : prev.sku,
+                handle: prev.handle || handle,
+                og_title: prev.og_title || name
+            };
+        });
     };
 
     const handleAttributeChange = (code, value) => {
@@ -172,28 +183,40 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">SKU Identity *</label>
-                                <input type="text" required className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-mono focus:ring-4 focus:ring-blue-100 outline-none transition-all"
-                                    value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} placeholder="SKU-XXXXX" />
+                                <div className="relative group">
+                                    <input type="text" required className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-mono focus:ring-4 focus:ring-blue-100 outline-none transition-all pr-24"
+                                        value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })} placeholder="SKU-XXXXX" />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setFormData(p => ({ ...p, sku: generateSKU(p.name) }))}
+                                        className="absolute right-2 top-1.5 px-3 py-1.5 bg-white border border-gray-100 rounded-xl text-[9px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 transition-all shadow-sm"
+                                    >
+                                        Auto 🧬
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-6 items-end">
                             <div>
                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Availability Status</label>
-                                <select className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none capitalize"
+                                <select className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-[11px] font-black uppercase tracking-tight focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none cursor-pointer"
                                     value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
                                     <option value="draft">Draft (Private)</option>
                                     <option value="active">Active (Public)</option>
                                     <option value="archived">Archived</option>
                                 </select>
                             </div>
-                            <div className="flex items-center pt-2 md:pt-8 px-2">
-                                <label className="flex items-center cursor-pointer group">
-                                    <input type="checkbox" className="w-5 h-5 text-blue-600 border-gray-200 rounded-lg focus:ring-blue-100 transition-all cursor-pointer"
-                                        checked={formData.is_featured} onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })} />
-                                    <span className="ml-4 text-[11px] font-black text-gray-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors flex items-center gap-2">
-                                        <Star className={cn("w-4 h-4 transition-colors", formData.is_featured ? "text-yellow-500 fill-yellow-500" : "text-gray-200")} />
-                                        Featured Offering
+                            <div className="flex items-center gap-3 px-2 h-[52px]">
+                                <label className="flex items-center cursor-pointer select-none gap-4">
+                                    <div className="relative">
+                                        <input type="checkbox" className="sr-only peer"
+                                            checked={formData.is_featured} onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })} />
+                                        <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                                        <Star className={cn("w-3 h-3 transition-colors", formData.is_featured ? "text-yellow-500 fill-yellow-500" : "text-gray-300")} />
+                                        Mark as Featured
                                     </span>
                                 </label>
                             </div>

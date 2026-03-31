@@ -63,8 +63,8 @@ export default function EditProductPage() {
 
                 setFormData({
                     name: product.name, description: product.description || "",
-                    sku: product.sku, price: product.price, status: product.status,
-                    is_featured: product.is_featured || false, category_ids: primaryCatId ? [primaryCatId] : [],
+                    sku: product.sku, price: product.price, status: product.status || 'draft',
+                    is_featured: !!product.is_featured, category_ids: primaryCatId ? [primaryCatId] : [],
                     tags: product.tags || [], handle: product.handle || "",
                     image_url: product.image_url || "", attributes: product.attributes || {},
                     meta_description: product.meta_description || "", og_title: product.og_title || "",
@@ -130,6 +130,16 @@ export default function EditProductPage() {
         }
     };
 
+    const generateSKU = (name) => {
+        const prefix = name ? name.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') : 'PRD';
+        const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+        return `${prefix}-${random}`;
+    };
+
+    const handleReturn = () => {
+        router.push("/dashboard/products/categories");
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -138,7 +148,7 @@ export default function EditProductPage() {
                 ...formData,
                 price: parseFloat(formData.price),
             });
-            router.push("/dashboard/products");
+            handleReturn();
         } catch (err) {
             alert('Failed to update product');
         } finally {
@@ -247,17 +257,20 @@ export default function EditProductPage() {
         <div className="w-full pb-24 space-y-4">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-3 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 transition-all text-gray-400 hover:text-gray-900">
+                    <button onClick={handleReturn} className="p-3 bg-white border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all text-gray-400 hover:text-gray-900 shadow-sm">
                         <ArrowLeft className="w-6 h-6" />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-black text-gray-900">Edit Product</h1>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">ID: {productId}</p>
+                        <h1 className="text-2xl font-black text-gray-900">Refine Product</h1>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Catalog ID: {productId}</p>
                     </div>
                 </div>
                 <div className="hidden md:flex gap-3">
-                    <button onClick={() => router.push('/dashboard/products')} className="px-6 py-2.5 bg-white border border-gray-100 text-gray-400 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">Discard</button>
-                    <button onClick={handleSubmit} disabled={saving} className="px-8 py-2.5 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-none">Update Catalog</button>
+                    <button onClick={handleReturn} className="px-6 py-2.5 bg-white border border-gray-100 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">Discard</button>
+                    <button onClick={handleSubmit} disabled={saving} className="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-none flex items-center gap-2">
+                        {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Update Catalog
+                    </button>
                 </div>
             </div>
 
@@ -286,8 +299,42 @@ export default function EditProductPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU *</label>
-                                    <input type="text" required className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-mono text-gray-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
-                                        value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} />
+                                    <div className="relative">
+                                        <input type="text" required className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-mono text-gray-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all pr-20"
+                                            value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })} />
+                                        <button 
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, sku: generateSKU(prev.name) }))}
+                                            className="absolute right-2 top-1.5 px-3 py-1.5 bg-white border border-gray-100 rounded-md text-[9px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 transition-all shadow-sm"
+                                        >
+                                            Auto
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Visibility Status</label>
+                                    <select 
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                        value={formData.status}
+                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                    >
+                                        <option value="draft">Draft (Private)</option>
+                                        <option value="active">Active (Live)</option>
+                                        <option value="archived">Archived</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-blue-50/30 border border-blue-100/50 rounded-xl mt-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="is_featured"
+                                        className="w-5 h-5 rounded border-blue-200 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer"
+                                        checked={formData.is_featured}
+                                        onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                                    />
+                                    <label htmlFor="is_featured" className="text-xs font-black text-gray-900 uppercase tracking-widest cursor-pointer select-none">
+                                        Mark as Featured Product
+                                        <span className="block text-[9px] font-black text-blue-400 mt-0.5 uppercase tracking-tighter">Showcase this item in featured collections</span>
+                                    </label>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Image URL</label>
@@ -383,19 +430,71 @@ export default function EditProductPage() {
                     )}
                 </div>
 
+                {/* Tags Section */}
+                <div className="bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden">
+                    <button type="button" onClick={() => toggleSection('tags')} className="w-full flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors text-left">
+                        <div className="flex items-center gap-3">
+                            <Tag className="w-5 h-5 text-blue-600" />
+                            <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Keywords & Tags</h2>
+                        </div>
+                        {expandedSections.tags ? <ChevronUp className="w-4 h-4 text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-300" />}
+                    </button>
+                    {expandedSections.tags && (
+                        <div className="p-6 pt-0 space-y-6 border-t border-gray-50 pt-6">
+                            <div className="space-y-4">
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Add New Keywords</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                                        placeholder="e.g. summer, trending, premium..."
+                                        value={tagInput}
+                                        onChange={(e) => setTagInput(e.target.value)}
+                                        onKeyDown={handleTagKeyDown}
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={addTag}
+                                        className="px-6 py-3 bg-white border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all font-black"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                                {formData.tags.map(tag => (
+                                    <div key={tag} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50/50 border border-blue-100 rounded-full group hover:bg-blue-100 transition-all">
+                                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{tag}</span>
+                                        <button type="button" onClick={() => removeTag(tag)} className="text-blue-300 hover:text-blue-600 transition-colors">
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {formData.tags.length === 0 && (
+                                    <div className="w-full py-8 border border-dashed border-gray-100 rounded-xl flex flex-col items-center justify-center grayscale opacity-30">
+                                        <Tag className="w-6 h-6 mb-2" />
+                                        <p className="text-[9px] font-black uppercase tracking-widest">No tags defined for this listing</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* SEO Section */}
-                <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden">
                     <button type="button" onClick={() => toggleSection('seo')} className="w-full flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors text-left">
                         <div className="flex items-center gap-3">
                             <Globe className="w-5 h-5 text-blue-600" />
-                            <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">SEO</h2>
+                            <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Search Engine Optimization (SEO)</h2>
                         </div>
                         {expandedSections.seo ? <ChevronUp className="w-4 h-4 text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-300" />}
                     </button>
                     {expandedSections.seo && (
                         <div className="p-6 pt-0 space-y-6 border-t border-gray-50 pt-6">
                             <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">URL Slug</label>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">URL Context Slug</label>
                                 <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-lg">
                                     <span className="text-[10px] font-mono font-black text-gray-400 uppercase">/catalog/</span>
                                     <input type="text" className="flex-1 bg-transparent font-mono text-sm text-blue-600 outline-none"
@@ -414,10 +513,10 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="hidden md:flex justify-end gap-4 pt-8">
-                    <button onClick={() => router.push('/dashboard/products')} className="px-8 py-3 bg-white border border-gray-100 text-gray-400 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">Discard</button>
-                    <button onClick={handleSubmit} disabled={saving} className="px-10 py-3 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-none flex items-center justify-center gap-2">
+                    <button onClick={handleReturn} className="px-8 py-3 bg-white border border-gray-100 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">Discard Changes</button>
+                    <button onClick={handleSubmit} disabled={saving} className="px-10 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-none flex items-center justify-center gap-2">
                         {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Update Product
+                        Commit Updates
                     </button>
                 </div>
             </form>

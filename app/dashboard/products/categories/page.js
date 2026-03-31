@@ -56,6 +56,52 @@ export default function CategoriesPage() {
         fetchInitialData();
     }, []);
 
+    // Real-time Attribute Inheritance Sync for Category Creation
+    useEffect(() => {
+        const syncInheritance = async () => {
+            // Only trigger if we have a parent and we're potentially creating or changing parent
+            if (!formData.parent_id) {
+                // If parent is cleared, remove all inherited attributes
+                setLinkedAttributes(prev => prev.filter(a => !a.is_inherited));
+                return;
+            }
+
+            try {
+                const res = await api.get(`/products/categories/${formData.parent_id}/admin`);
+                if (res.data.category && res.data.category.attributes) {
+                    const parentAttrs = res.data.category.attributes
+                        .filter(a => !a.is_ignored)
+                        .map(a => ({
+                            attribute_id: a.id, 
+                            is_required: a.is_required, 
+                            is_ignored: false,
+                            is_inherited: true, 
+                            source_category_name: res.data.category.name
+                        }));
+
+                    setLinkedAttributes(prev => {
+                        // 1. Strip out previous inherited attributes
+                        const withoutInherited = prev.filter(a => !a.is_inherited);
+                        
+                        // 2. Merge new parent attributes (respecting manual direct links)
+                        const merged = [...withoutInherited];
+                        parentAttrs.forEach(pa => {
+                            const hasDirectOverride = merged.find(m => m.attribute_id === pa.attribute_id);
+                            if (!hasDirectOverride) {
+                                merged.push(pa);
+                            }
+                        });
+                        return merged;
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to sync parent attributes", error);
+            }
+        };
+
+        syncInheritance();
+    }, [formData.parent_id]);
+
     const fetchInitialData = async () => {
         try {
             setLoading(true);
@@ -206,9 +252,9 @@ export default function CategoriesPage() {
             }
             // Save attributes with Smart Sync logic
             for (const attr of linkedAttributes) {
-                const shouldDelete = (attr.is_ignored && !attr.is_inherited) || 
-                                   (!attr.is_ignored && attr.is_inherited);
-                
+                const shouldDelete = (attr.is_ignored && !attr.is_inherited) ||
+                    (!attr.is_ignored && attr.is_inherited);
+
                 if (shouldDelete) {
                     await api.delete(`/products/categories/${categoryId}/attributes/${attr.attribute_id}`);
                 } else {
@@ -244,7 +290,7 @@ export default function CategoriesPage() {
             alert('Failed to delete category.');
         }
     };
-    
+
     const handleEditAttributeRel = (attribute) => {
         setSelectedAttrRel({
             ...attribute,
@@ -261,8 +307,8 @@ export default function CategoriesPage() {
             // 1. If it's a DIRECT link and we are unlinking it, DELETE it.
             // 2. If it's an INHERITED link and we are re-linking it (is_ignored = false), DELETE it.
             //    (De-linking the local override record restores the natural parent inheritance)
-            const shouldDelete = (selectedAttrRel.is_ignored && !selectedAttrRel.is_inherited) || 
-                               (!selectedAttrRel.is_ignored && selectedAttrRel.is_inherited);
+            const shouldDelete = (selectedAttrRel.is_ignored && !selectedAttrRel.is_inherited) ||
+                (!selectedAttrRel.is_ignored && selectedAttrRel.is_inherited);
 
             if (shouldDelete) {
                 await api.delete(`/products/categories/${categoryDetails.id}/attributes/${selectedAttrRel.id}`);
@@ -533,26 +579,51 @@ export default function CategoriesPage() {
                                                     <p className="text-[10px] font-black uppercase tracking-widest">Scanning Catalog...</p>
                                                 </div>
                                             ) : paginatedProducts.length > 0 ? (
-                                                <div className="space-y-2">
+                                                <div className="space-y-4">
                                                     {paginatedProducts.map(product => (
-                                                        <div key={product.id} className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-xl hover:border-blue-500 transition-all group">
-                                                            <div className="w-12 h-12 rounded-lg bg-gray-50 overflow-hidden flex-shrink-0 border border-gray-100">
-                                                                {product.image_url ? <img src={product.image_url} className="w-full h-full object-cover" alt="" /> : <Package className="w-full h-full p-3 text-gray-200" />}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-bold text-sm text-gray-900 truncate">{product.name}</p>
-                                                                <div className="flex items-center gap-3 mt-1 underline-offset-4">
-                                                                    <span className="text-[10px] font-black text-blue-600">${product.price}</span>
-                                                                    {product.sku && <span className="text-[10px] font-mono text-gray-400 uppercase tracking-tighter">SKU: {product.sku}</span>}
+                                                        <div key={product.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 p-4 bg-white border border-gray-100 rounded-[24px] hover:border-blue-500 transition-all group shadow-sm">
+                                                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                                                                <div className="w-16 h-16 sm:w-12 sm:h-12 rounded-2xl bg-gray-50 overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm">
+                                                                    {product.image_url ? <img src={product.image_url} className="w-full h-full object-cover" alt="" /> : <Package className="w-full h-full p-3 text-gray-200" />}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex justify-between items-start sm:block">
+                                                                        <p className="font-black text-[13px] text-gray-900 truncate leading-tight uppercase tracking-tight">{product.name}</p>
+                                                                        <span className="sm:hidden text-[13px] font-black text-blue-600">${product.price}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3 mt-1.5 overflow-hidden">
+                                                                        <span className="hidden sm:inline text-[11px] font-black text-blue-600 uppercase tracking-widest">${product.price}</span>
+                                                                        {product.sku && (
+                                                                            <span className="text-[10px] font-mono text-gray-400 uppercase tracking-tighter truncate max-w-[80px]" title={product.sku}>
+                                                                                #{product.sku.length > 8 ? `${product.sku.substring(0, 8)}...` : product.sku}
+                                                                            </span>
+                                                                        )}
+                                                                        <span className={cn(
+                                                                            "px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest border rounded",
+                                                                            product.status === 'active' ? "bg-green-50 text-green-700 border-green-100" : "bg-gray-50 text-gray-400 border-gray-100"
+                                                                        )}>
+                                                                            {product.status || 'Draft'}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                                                <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                                <Link href={`/dashboard/products/${product.id}/edit`} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
-                                                                    <Edit2 className="w-4 h-4" />
+
+                                                            {/* Actions Row */}
+                                                            <div className="flex items-center justify-end gap-2 pt-3 sm:pt-0 border-t border-gray-50 sm:border-0">
+                                                                <Link
+                                                                    href={`/dashboard/products/${product.id}/edit`}
+                                                                    className="flex-1 sm:flex-none text-center px-4 py-2 sm:p-2 bg-gray-50 sm:bg-transparent text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-gray-100 sm:border-transparent hover:border-blue-100"
+                                                                >
+                                                                    <span className="sm:hidden">Edit</span>
+                                                                    <Edit2 className="hidden sm:block w-4 h-4" />
                                                                 </Link>
+                                                                <button
+                                                                    onClick={() => handleDeleteProduct(product.id)}
+                                                                    className="flex-1 sm:flex-none text-center px-4 py-2 sm:p-2 bg-red-50 sm:bg-transparent text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-red-100 sm:border-transparent"
+                                                                >
+                                                                    <span className="sm:hidden">Delete</span>
+                                                                    <Trash2 className="hidden sm:block w-4 h-4" />
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -612,12 +683,12 @@ export default function CategoriesPage() {
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); handleEditAttributeRel(attr); }}
-                                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100 group"
-                                                                >
-                                                                    <Settings className="w-4 h-4 text-gray-200 group-hover:text-blue-600 transition-colors" />
-                                                                </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleEditAttributeRel(attr); }}
+                                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100 group"
+                                                        >
+                                                            <Settings className="w-4 h-4 text-gray-200 group-hover:text-blue-600 transition-colors" />
+                                                        </button>
                                                     </div>
                                                 ))}
                                                 {categoryDetails.attributes?.filter(a => !a.is_ignored).length === 0 && (
@@ -648,13 +719,13 @@ export default function CategoriesPage() {
                             <button onClick={() => setIsCreateProductModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-900 transition-all"><X className="w-6 h-6" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6">
-                            <ProductForm 
-                                categoryId={categoryDetails?.id} 
+                            <ProductForm
+                                categoryId={categoryDetails?.id}
                                 onSuccess={() => {
                                     setIsCreateProductModalOpen(false);
                                     fetchPaginatedProducts(1);
-                                }} 
-                                onCancel={() => setIsCreateProductModalOpen(false)} 
+                                }}
+                                onCancel={() => setIsCreateProductModalOpen(false)}
                             />
                         </div>
                     </div>
@@ -853,7 +924,7 @@ export default function CategoriesPage() {
 
                             {/* Property Toggles */}
                             <div className="space-y-4">
-                                <div 
+                                <div
                                     onClick={() => setSelectedAttrRel(prev => ({ ...prev, is_required: !prev.is_required }))}
                                     className={cn(
                                         "p-5 rounded-3xl border transition-all cursor-pointer flex items-center justify-between group",
@@ -874,7 +945,7 @@ export default function CategoriesPage() {
                                     </div>
                                 </div>
 
-                                <div 
+                                <div
                                     onClick={() => setSelectedAttrRel(prev => ({ ...prev, is_ignored: !prev.is_ignored }))}
                                     className={cn(
                                         "p-5 rounded-3xl border transition-all cursor-pointer flex items-center justify-between group",
