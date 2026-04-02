@@ -49,6 +49,11 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
         structured_data: null
     });
 
+    const [manualFields, setManualFields] = useState({
+        handle: false,
+        og_title: false,
+        twitter_title: false
+    });
     const [tagInput, setTagInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [availableAttributes, setAvailableAttributes] = useState([]);
@@ -103,14 +108,16 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
     const handleNameChange = (name) => {
         const handle = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         setFormData(prev => {
-            // Only auto-generate if SKU is currently empty AND the name is long enough to provide a good prefix (3+ chars)
-            const shouldAutoGenerate = !prev.sku && name.trim().length >= 3;
+            // Only auto-generate SKU if it is currently empty and name is long enough
+            const shouldAutoGenerateSKU = !prev.sku && name.trim().length >= 3;
+            
             return {
                 ...prev,
                 name,
-                sku: shouldAutoGenerate ? generateSKU(name) : prev.sku,
-                handle: prev.handle || handle,
-                og_title: prev.og_title || name
+                sku: shouldAutoGenerateSKU ? generateSKU(name) : prev.sku,
+                handle: manualFields.handle ? prev.handle : handle,
+                og_title: manualFields.og_title ? prev.og_title : name,
+                twitter_title: manualFields.twitter_title ? prev.twitter_title : (prev.twitter_title || name)
             };
         });
     };
@@ -356,7 +363,11 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                             <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3">
                                 <span className="text-gray-400 text-xs font-black uppercase tracking-widest opacity-50">/prod/</span>
                                 <input type="text" className="flex-1 bg-transparent border-none text-sm focus:ring-0 outline-none p-0 font-bold text-gray-900"
-                                    value={formData.handle} onChange={(e) => setFormData({ ...formData, handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
+                                    value={formData.handle} 
+                                    onChange={(e) => {
+                                        setManualFields(prev => ({ ...prev, handle: true }));
+                                        setFormData({ ...formData, handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') });
+                                    }} />
                             </div>
                         </div>
 
@@ -364,7 +375,17 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Metadata Inheritance</p>
                             <SEOMetaEditor
                                 page={formData}
-                                onChange={(updated) => setFormData(updated)}
+                                onChange={(updated) => {
+                                    // Detect if user is manually overriding syncing fields via the editor
+                                    const changes = {};
+                                    if (updated.og_title !== formData.og_title) changes.og_title = true;
+                                    if (updated.twitter_title !== formData.twitter_title) changes.twitter_title = true;
+                                    
+                                    if (Object.keys(changes).length > 0) {
+                                        setManualFields(prev => ({ ...prev, ...changes }));
+                                    }
+                                    setFormData(updated);
+                                }}
                             />
                         </div>
                     </div>
