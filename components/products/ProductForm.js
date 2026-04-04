@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
-import { 
-    Star, X, Image as ImageIcon, ChevronDown, ChevronUp, 
-    Loader2, Save, ArrowLeft, Tag 
+import {
+    Star, X, Image as ImageIcon, ChevronDown, ChevronUp,
+    Loader2, Save, ArrowLeft, Tag
 } from "lucide-react";
 import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 
@@ -58,6 +58,7 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
     const [loading, setLoading] = useState(false);
     const [availableAttributes, setAvailableAttributes] = useState([]);
     const [categoryName, setCategoryName] = useState("");
+    const [activeDropdown, setActiveDropdown] = useState(null); // Track which attribute dropdown is open
 
     // Fetch attributes and category details
     useEffect(() => {
@@ -110,7 +111,7 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
         setFormData(prev => {
             // Only auto-generate SKU if it is currently empty and name is long enough
             const shouldAutoGenerateSKU = !prev.sku && name.trim().length >= 3;
-            
+
             return {
                 ...prev,
                 name,
@@ -193,8 +194,8 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                                 <div className="relative group">
                                     <input type="text" required className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-mono focus:ring-4 focus:ring-blue-100 outline-none transition-all pr-24"
                                         value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value.toUpperCase() })} placeholder="SKU-XXXXX" />
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setFormData(p => ({ ...p, sku: generateSKU(p.name) }))}
                                         className="absolute right-2 top-1.5 px-3 py-1.5 bg-white border border-gray-100 rounded-xl text-[9px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 transition-all shadow-sm"
                                     >
@@ -285,16 +286,118 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                                                 required={attr.is_required} />
                                         )}
 
+                                        {attr.type === 'range' && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="relative group">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-gray-300 uppercase letter-spacing-widest">Min</span>
+                                                    <input type="number" className="w-full pl-12 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                        value={(formData.attributes[attr.code])?.min || ''}
+                                                        onChange={(e) => handleAttributeChange(attr.code, { ...(formData.attributes[attr.code] || {}), min: e.target.value })}
+                                                        required={attr.is_required} />
+                                                </div>
+                                                <div className="relative group">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-gray-300 uppercase letter-spacing-widest">Max</span>
+                                                    <input type="number" className="w-full pl-12 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                                        value={(formData.attributes[attr.code])?.max || ''}
+                                                        onChange={(e) => handleAttributeChange(attr.code, { ...(formData.attributes[attr.code] || {}), max: e.target.value })}
+                                                        required={attr.is_required} />
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {attr.type === 'select' && (
-                                            <select className="w-full px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none"
-                                                value={formData.attributes[attr.code] || ''}
-                                                onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
-                                                required={attr.is_required}>
-                                                <option value="">Select Variant...</option>
-                                                {attr.options?.map((opt, i) => (
-                                                    <option key={i} value={opt.value}>{opt.label}</option>
-                                                ))}
-                                            </select>
+                                            <div className="relative group">
+                                                {attr.allow_custom ? (
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            className="w-full px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-300 pr-10"
+                                                            value={formData.attributes[attr.code] || ''}
+                                                            onChange={(e) => {
+                                                                handleAttributeChange(attr.code, e.target.value);
+                                                                setActiveDropdown(attr.code);
+                                                            }}
+                                                            onFocus={() => setActiveDropdown(attr.code)}
+                                                            onBlur={() => setTimeout(() => setActiveDropdown(null), 200)}
+                                                            placeholder="Select or type..."
+                                                            required={attr.is_required}
+                                                        />
+                                                        {activeDropdown === attr.code && (
+                                                            <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-200/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                                                <div className="max-h-60 overflow-y-auto">
+                                                                    {attr.options?.filter(opt =>
+                                                                        !formData.attributes[attr.code] ||
+                                                                        opt.label.toLowerCase().includes(String(formData.attributes[attr.code]).toLowerCase()) ||
+                                                                        opt.value.toLowerCase().includes(String(formData.attributes[attr.code]).toLowerCase())
+                                                                    ).map((opt, i) => (
+                                                                        <button
+                                                                            key={i}
+                                                                            type="button"
+                                                                            className="w-full px-5 py-3 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center justify-between group/opt"
+                                                                            onMouseDown={(e) => {
+                                                                                e.preventDefault(); // Prevent blur before mousedown completes
+                                                                                handleAttributeChange(attr.code, opt.value);
+                                                                                setActiveDropdown(null);
+                                                                            }}
+                                                                        >
+                                                                            <span className="font-bold">{opt.label}</span>
+                                                                            <span className="text-[10px] text-gray-300 opacity-0 group-hover/opt:opacity-100 transition-opacity uppercase font-black">Selection</span>
+                                                                        </button>
+                                                                    ))}
+                                                                    {(attr.options || []).length === 0 && (
+                                                                        <div className="px-5 py-4 text-[10px] font-black text-gray-400 uppercase text-center italic">No presets defined</div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <select className="w-full px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none"
+                                                        value={formData.attributes[attr.code] || ''}
+                                                        onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
+                                                        required={attr.is_required}>
+                                                        <option value="">Select variant...</option>
+                                                        {attr.options?.map((opt, i) => (
+                                                            <option key={i} value={opt.value}>{opt.label}</option>
+                                                        ))}
+                                                    </select>
+                                                )}
+                                                <ChevronDown className={cn("absolute right-4 top-[14px] w-4 h-4 text-gray-400 pointer-events-none transition-all", activeDropdown === attr.code && "rotate-180 text-blue-600")} />
+                                            </div>
+                                        )}
+
+                                        {attr.type === 'multiselect' && (
+                                            <div className="space-y-2">
+                                                <div className="flex flex-wrap gap-2 mb-2 p-2 bg-gray-50 border border-gray-100 rounded-2xl min-h-[44px]">
+                                                    {(formData.attributes[attr.code] || []).map((val, idx) => (
+                                                        <span key={idx} className="flex items-center gap-2 px-3 py-1 bg-white border border-blue-100 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                                            {attr.options?.find(o => o.value === val)?.label || val}
+                                                            <button type="button" onClick={() => {
+                                                                const current = formData.attributes[attr.code] || [];
+                                                                handleAttributeChange(attr.code, current.filter((_, i) => i !== idx));
+                                                            }} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
+                                                        </span>
+                                                    ))}
+                                                    {(formData.attributes[attr.code] || []).length === 0 && (
+                                                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest p-2">None selected</span>
+                                                    )}
+                                                </div>
+                                                <select className="w-full px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none"
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (!val) return;
+                                                        const current = formData.attributes[attr.code] || [];
+                                                        if (!current.includes(val)) {
+                                                            handleAttributeChange(attr.code, [...current, val]);
+                                                        }
+                                                        e.target.value = "";
+                                                    }}>
+                                                    <option value="">Add item...</option>
+                                                    {attr.options?.filter(o => !(formData.attributes[attr.code] || []).includes(o.value)).map((opt, i) => (
+                                                        <option key={i} value={opt.value}>{opt.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         )}
 
                                         {attr.type === 'boolean' && (
@@ -363,7 +466,7 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                             <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3">
                                 <span className="text-gray-400 text-xs font-black uppercase tracking-widest opacity-50">/prod/</span>
                                 <input type="text" className="flex-1 bg-transparent border-none text-sm focus:ring-0 outline-none p-0 font-bold text-gray-900"
-                                    value={formData.handle} 
+                                    value={formData.handle}
                                     onChange={(e) => {
                                         setManualFields(prev => ({ ...prev, handle: true }));
                                         setFormData({ ...formData, handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') });
@@ -380,7 +483,7 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                                     const changes = {};
                                     if (updated.og_title !== formData.og_title) changes.og_title = true;
                                     if (updated.twitter_title !== formData.twitter_title) changes.twitter_title = true;
-                                    
+
                                     if (Object.keys(changes).length > 0) {
                                         setManualFields(prev => ({ ...prev, ...changes }));
                                     }

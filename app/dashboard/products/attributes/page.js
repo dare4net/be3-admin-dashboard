@@ -69,7 +69,7 @@ export default function AttributesPage() {
     // Form State
     const [formData, setFormData] = useState({
         label: '', code: '', type: 'text', image_url: '',
-        options: [], clauses: []
+        options: [], clauses: [], allow_custom: false
     });
 
     const [selectedCategories, setSelectedCategories] = useState([]);
@@ -117,7 +117,8 @@ export default function AttributesPage() {
         setFormData({
             label: attr.label, code: attr.code, type: attr.type,
             image_url: attr.image_url || '', options: attr.options || [],
-            clauses: attr.clauses || []
+            clauses: attr.clauses || [],
+            allow_custom: attr.allow_custom || false
         });
         setActiveTab('general');
         setIsCreateModalOpen(true);
@@ -157,7 +158,11 @@ export default function AttributesPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const payload = { ...formData, options: JSON.stringify(formData.options), clauses: JSON.stringify(formData.clauses) };
+            const payload = {
+                ...formData,
+                options: JSON.stringify(formData.options),
+                clauses: JSON.stringify(formData.clauses)
+            };
             let attributeId;
             if (editingAttribute) {
                 const res = await api.put(`/products/attributes/${editingAttribute.id}`, payload);
@@ -188,7 +193,7 @@ export default function AttributesPage() {
     };
 
     const resetForm = () => {
-        setFormData({ label: '', code: '', type: 'text', image_url: '', options: [], clauses: [] });
+        setFormData({ label: '', code: '', type: 'text', image_url: '', options: [], clauses: [], allow_custom: false });
         setOptionInput({ label: '', value: '' });
         setSelectedCategories([]);
         setInitialCategories([]);
@@ -403,6 +408,7 @@ export default function AttributesPage() {
                                             >
                                                 <option value="text">Text Input</option>
                                                 <option value="number">Number Input</option>
+                                                <option value="range">Range Input (Min/Max)</option>
                                                 <option value="select">Dropdown Menu</option>
                                                 <option value="multiselect">Multi-Selection</option>
                                                 <option value="boolean">Binary Switch</option>
@@ -427,7 +433,20 @@ export default function AttributesPage() {
                                     {(formData.type === 'select' || formData.type === 'multiselect' || formData.type === 'boolean') && (
                                         <div className="pt-6 border-t border-gray-100 space-y-4">
                                             <div className="flex justify-between items-center">
-                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Interface Options</label>
+                                                <div className="flex flex-col gap-1">
+                                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Interface Options</label>
+                                                    {formData.type === 'select' && (
+                                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-3 h-3 rounded text-blue-600 focus:ring-blue-500"
+                                                                checked={formData.allow_custom}
+                                                                onChange={(e) => setFormData({ ...formData, allow_custom: e.target.checked })}
+                                                            />
+                                                            <span className="text-[9px] font-black text-gray-400 group-hover:text-blue-600 uppercase tracking-widest transition-colors">Allow custom values</span>
+                                                        </label>
+                                                    )}
+                                                </div>
                                                 {formData.type !== 'boolean' && (
                                                     <button type="button" onClick={() => {
                                                         if (optionInput.label && optionInput.value) {
