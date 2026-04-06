@@ -1,7 +1,40 @@
 "use client";
 
-import { LayoutTemplate, Trash2, Eye, Shuffle, ChevronDown } from "lucide-react";
+import { LayoutTemplate, Trash2, Eye, Shuffle, ChevronDown, Monitor, Tablet, Smartphone } from "lucide-react";
 import ColorPicker from "@/components/config/ColorPicker";
+
+export function DeviceToggle({ selected, onChange }) {
+    const devices = [
+        { id: 'desktop', icon: Monitor, label: 'Desktop' },
+        { id: 'tablet', icon: Tablet, label: 'Tablet' },
+        { id: 'mobile', icon: Smartphone, label: 'Mobile' }
+    ];
+
+    return (
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+            {devices.map((device) => {
+                const Icon = device.icon;
+                const isActive = selected === device.id;
+                return (
+                    <button
+                        key={device.id}
+                        type="button"
+                        onClick={() => onChange(device.id)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                            isActive 
+                                ? 'bg-white text-blue-600 shadow-sm' 
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                        }`}
+                        title={device.label}
+                    >
+                        <Icon size={14} strokeWidth={isActive ? 2.5 : 2} />
+                        <span className="hidden md:inline">{device.label}</span>
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
 
 export function ToggleButton({ value, onChange }) {
     return (

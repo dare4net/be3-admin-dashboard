@@ -1,8 +1,9 @@
 "use client";
 
-import { Shuffle, Maximize, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Shuffle, Maximize, Sparkles, RotateCcw } from "lucide-react";
 import ColorPicker from "@/components/config/ColorPicker";
-import { Input, Select, CollapsibleSection, RandomizationConfig, ToggleButton } from "./FormComponents";
+import { Input, Select, CollapsibleSection, RandomizationConfig, ToggleButton, DeviceToggle } from "./FormComponents";
 
 export default function ProductForms({
     widgetType,
@@ -16,6 +17,21 @@ export default function ProductForms({
     toggleSection
 }) {
     const isCarousel = widgetType === 'product_carousel';
+    const [selectedDevice, setSelectedDevice] = useState('desktop');
+
+    const clearOverride = (key) => {
+        if (selectedDevice === 'desktop' || !config.responsiveDisplay?.[selectedDevice]) return;
+
+        const newResponsive = { ...config.responsiveDisplay };
+        delete newResponsive[selectedDevice][key];
+
+        // If device object is empty, remove it
+        if (Object.keys(newResponsive[selectedDevice]).length === 0) {
+            delete newResponsive[selectedDevice];
+        }
+
+        updateConfig('responsiveDisplay', Object.keys(newResponsive).length > 0 ? newResponsive : undefined);
+    };
 
     return (
         <div className="space-y-6">
@@ -116,24 +132,106 @@ export default function ProductForms({
             </div>
 
             {/* Display Elements */}
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-3">
-                <h4 className="font-semibold text-sm text-gray-900 border-b pb-2">Display Elements</h4>
-                {[
-                    { key: 'showPrice', label: 'Show Price' },
-                    { key: 'showAddToCart', label: 'Show "Add to Cart"' },
-                    { key: 'showViewDetails', label: 'Show "View Details"' },
-                    { key: 'showFeaturedBadge', label: 'Show "Featured" Badge' },
-                    { key: 'showTags', label: 'Show Tags' },
-                    { key: 'showDescription', label: 'Show Description' },
-                    { key: 'showAttributes', label: 'Show Attributes' },
-                    { key: 'showSocialProof', label: 'Show Social Proof' },
-                    { key: 'showRating', label: 'Show Rating' }
-                ].map(item => (
-                    <div key={item.key} className="flex items-center justify-between py-1">
-                        <label className="text-sm text-gray-600">{item.label}</label>
-                        <ToggleButton value={config[item.key] !== false} onChange={v => updateConfig(item.key, v)} />
-                    </div>
-                ))}
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                    <h4 className="font-semibold text-sm text-gray-900">Display Elements</h4>
+                    <DeviceToggle selected={selectedDevice} onChange={setSelectedDevice} />
+                </div>
+
+                <div className="space-y-2 pt-2">
+                    {[
+                        { key: 'showPrice', label: 'Show Price' },
+                        { key: 'showAddToCart', label: 'Show "Add to Cart"' },
+                        { key: 'showViewDetails', label: 'Show "View Details"' },
+                        { key: 'showFeaturedBadge', label: 'Show "Featured" Badge' },
+                        { key: 'showVendor', label: 'Show Vendor' },
+                        { key: 'showTags', label: 'Show Tags', countKey: 'tagsCount' },
+                        { key: 'showDescription', label: 'Show Description' },
+                        { key: 'showAttributes', label: 'Show Attributes', countKey: 'attributesCount' },
+                        { key: 'showSocialProof', label: 'Show Social Proof' },
+                        { key: 'showRating', label: 'Show Rating' }
+                    ].map(item => {
+                        const isDesktop = selectedDevice === 'desktop';
+                        const responsiveValue = config.responsiveDisplay?.[selectedDevice]?.[item.key];
+                        const isOverridden = !isDesktop && responsiveValue !== undefined;
+                        const valueSource = isOverridden ? responsiveValue : config[item.key];
+                        
+                        // Default logic: missing means TRUE (ON) unless otherwise specified
+                        const value = valueSource === undefined ? true : !!valueSource;
+
+                        // Count resolution
+                        const countKey = item.countKey;
+                        const responsiveCount = countKey ? config.responsiveDisplay?.[selectedDevice]?.[countKey] : undefined;
+                        const isCountOverridden = countKey && !isDesktop && responsiveCount !== undefined;
+                        const countValue = isCountOverridden ? responsiveCount : (config[countKey] || (countKey === 'tagsCount' ? 3 : 2));
+
+                        return (
+                            <div key={item.key} className="space-y-1 py-1 border-b border-gray-100 last:border-0 group/row">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <label className={`text-sm ${isOverridden ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>
+                                            {item.label}
+                                            {isOverridden && <span className="ml-2 text-[8px] uppercase bg-blue-100 px-1 rounded font-normal">Custom</span>}
+                                        </label>
+                                        {!isDesktop && !isOverridden && <span className="text-[10px] text-gray-400 italic">Inherited from Desktop</span>}
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        {isOverridden && (
+                                            <button
+                                                onClick={() => resetToDefault(item.key)}
+                                                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                                title="Reset to Default"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                        <ToggleButton
+                                            value={value}
+                                            onChange={v => {
+                                                if (isDesktop) updateConfig(item.key, v);
+                                                else updateResponsiveConfig(selectedDevice, item.key, v);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {value && countKey && (
+                                    <div className="flex items-center justify-between pl-4 pb-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[11px] font-medium ${isCountOverridden ? 'text-blue-600' : 'text-gray-500'}`}>
+                                                Max items to show
+                                            </span>
+                                            {isCountOverridden && <span className="text-[8px] uppercase bg-blue-100 px-1 rounded text-blue-600">Custom</span>}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {isCountOverridden && (
+                                                <button
+                                                    onClick={() => resetToDefault(countKey)}
+                                                    className="p-1 text-gray-400 hover:text-red-500"
+                                                >
+                                                    <X className="w-2 h-2" />
+                                                </button>
+                                            )}
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="10"
+                                                value={countValue}
+                                                onChange={e => {
+                                                    const val = parseInt(e.target.value) || 1;
+                                                    if (isDesktop) updateConfig(countKey, val);
+                                                    else updateResponsiveConfig(selectedDevice, countKey, val);
+                                                }}
+                                                className={`w-12 h-6 text-xs text-center border rounded focus:ring-1 focus:outline-none ${isCountOverridden ? 'border-blue-300 text-blue-700 bg-blue-50 focus:ring-blue-400' : 'border-gray-200 text-gray-600 focus:ring-gray-300'}`}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Behaviors & Animations */}
