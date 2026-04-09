@@ -30,7 +30,8 @@ export default function PagesManagement() {
         twitter_image: '',
         canonical_url: '',
         robots: 'index,follow',
-        structured_data: null
+        structured_data: null,
+        theme_overrides: {}
     });
 
     useEffect(() => {
@@ -97,7 +98,8 @@ export default function PagesManagement() {
             twitter_image: page.twitter_image || '',
             canonical_url: page.canonical_url || '',
             robots: page.robots || 'index,follow',
-            structured_data: page.structured_data || null
+            structured_data: page.structured_data || null,
+            theme_overrides: page.theme_overrides || {}
         });
         setIsModalOpen(true);
     };
@@ -351,6 +353,84 @@ export default function PagesManagement() {
                                     />
                                     <span className="text-sm">Show Footer</span>
                                 </label>
+                            </div>
+
+                            <div className="border-t pt-6 mt-6">
+                                <h4 className="text-md font-semibold mb-4 text-gray-800">Design Overrides</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-xl border border-dashed">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Primary Color</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="color"
+                                                    value={formData.theme_overrides?.primary || '#2563eb'}
+                                                    onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, primary: e.target.value } })}
+                                                    className="w-10 h-10 p-0.5 border rounded cursor-pointer"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={formData.theme_overrides?.primary || ''}
+                                                    onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, primary: e.target.value } })}
+                                                    placeholder="Global Theme Default"
+                                                    className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Background Color</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="color"
+                                                    value={formData.theme_overrides?.background || '#ffffff'}
+                                                    onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, background: e.target.value } })}
+                                                    className="w-10 h-10 p-0.5 border rounded cursor-pointer"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={formData.theme_overrides?.background || ''}
+                                                    onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, background: e.target.value } })}
+                                                    placeholder="Global Theme Default"
+                                                    className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Heading Font</label>
+                                            <select
+                                                value={formData.theme_overrides?.fontHeading || ''}
+                                                onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, fontHeading: e.target.value } })}
+                                                className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                                            >
+                                                <option value="">Global Theme Default</option>
+                                                <option value="Inter">Inter</option>
+                                                <option value="Roboto">Roboto</option>
+                                                <option value="Open Sans">Open Sans</option>
+                                                <option value="Playfair Display">Playfair Display</option>
+                                                <option value="Montserrat">Montserrat</option>
+                                                <option value="Manrope">Manrope</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Body Font</label>
+                                            <select
+                                                value={formData.theme_overrides?.fontBody || ''}
+                                                onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, fontBody: e.target.value } })}
+                                                className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                                            >
+                                                <option value="">Global Theme Default</option>
+                                                <option value="Inter">Inter</option>
+                                                <option value="Roboto">Roboto</option>
+                                                <option value="Open Sans">Open Sans</option>
+                                                <option value="Lato">Lato</option>
+                                                <option value="Manrope">Manrope</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-2 px-1">Values left empty will fallback to the active global theme settings.</p>
                             </div>
 
                             {/* SEO Meta Editor */}

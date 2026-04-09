@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Shuffle, Maximize, Sparkles, RotateCcw } from "lucide-react";
+import { Shuffle, Maximize, Sparkles, RotateCcw, X } from "lucide-react";
 import ColorPicker from "@/components/config/ColorPicker";
 import { Input, Select, CollapsibleSection, RandomizationConfig, ToggleButton, DeviceToggle } from "./FormComponents";
 
@@ -19,7 +19,7 @@ export default function ProductForms({
     const isCarousel = widgetType === 'product_carousel';
     const [selectedDevice, setSelectedDevice] = useState('desktop');
 
-    const clearOverride = (key) => {
+    const resetToDefault = (key) => {
         if (selectedDevice === 'desktop' || !config.responsiveDisplay?.[selectedDevice]) return;
 
         const newResponsive = { ...config.responsiveDisplay };
@@ -31,6 +31,17 @@ export default function ProductForms({
         }
 
         updateConfig('responsiveDisplay', Object.keys(newResponsive).length > 0 ? newResponsive : undefined);
+    };
+
+    const updateResponsiveConfig = (device, key, value) => {
+        const newResponsive = {
+            ...(config.responsiveDisplay || {}),
+            [device]: {
+                ...(config.responsiveDisplay?.[device] || {}),
+                [key]: value
+            }
+        };
+        updateConfig('responsiveDisplay', newResponsive);
     };
 
     return (
