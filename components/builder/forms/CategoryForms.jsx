@@ -24,6 +24,26 @@ export default function CategoryForms({
                 <Input label="Subtitle" value={config.subtitle || ''} onChange={v => updateConfig('subtitle', v)} />
             </div>
 
+            {/* Context-Aware Mode */}
+            <div className="p-4 rounded-xl border-2 border-teal-200 bg-teal-50 space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Zap size={16} className="text-teal-600" />
+                        <span className="font-bold text-sm text-teal-900">Context-Aware Mode</span>
+                    </div>
+                    <ToggleButton
+                        value={config.contextAware || false}
+                        onChange={v => updateConfig('contextAware', v)}
+                    />
+                </div>
+                <p className="text-xs text-teal-700 leading-snug">
+                    When enabled, the category list is automatically driven by the current page.
+                    On vendor pages it shows only that vendor&apos;s categories (via the ledger);
+                    on category pages it shows child categories of the current one.
+                    Source Type below is used as fallback on non-context pages.
+                </p>
+            </div>
+
             <CollapsibleSection
                 title="Category Selection"
                 icon={<Box size={18} />}

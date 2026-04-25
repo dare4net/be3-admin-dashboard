@@ -44,7 +44,10 @@ export default function WidgetEditorModal({
     bannerGroups = [],
     widgets = []
 }) {
-    const [formData, setFormData] = useState(widget);
+    const [formData, setFormData] = useState(() => ({
+        ...widget,
+        config: { ...getDefaultConfig(widget.widget_type), ...(widget.config || {}) }
+    }));
     const [activeDevice, setActiveDevice] = useState('desktop');
     const [openSections, setOpenSections] = useState({
         randomization: false,
@@ -514,7 +517,17 @@ export function getDefaultConfig(widgetType) {
             titlePadding: '10px',
             titleBottomMargin: '15px',
             sectionPaddingTop: '5px',
-            sectionPaddingBottom: '5px'
+            sectionPaddingBottom: '5px',
+            showPrice: true,
+            showAddToCart: true,
+            showViewDetails: true,
+            showFeaturedBadge: true,
+            showVendor: true,
+            showTags: true,
+            showDescription: true,
+            showAttributes: true,
+            showSocialProof: true,
+            showRating: false
         },
         product_carousel: {
             title: 'Best Sellers',
@@ -531,6 +544,7 @@ export function getDefaultConfig(widgetType) {
             showPrice: true,
             showFeaturedBadge: true,
             showViewDetails: true,
+            showVendor: true,
             showTags: false,
             showAttributes: false,
             showDescription: false,

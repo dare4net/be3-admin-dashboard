@@ -63,6 +63,25 @@ export default function ProductForms({
                 </div>
             </div>
 
+            {/* Context-Aware Mode */}
+            <div className="p-4 rounded-xl border-2 border-teal-200 bg-teal-50 space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Sparkles size={16} className="text-teal-600" />
+                        <span className="font-bold text-sm text-teal-900">Context-Aware Mode</span>
+                    </div>
+                    <ToggleButton
+                        value={config.contextAware || false}
+                        onChange={v => updateConfig('contextAware', v)}
+                    />
+                </div>
+                <p className="text-xs text-teal-700 leading-snug">
+                    When enabled, products are automatically filtered based on the current page.
+                    On vendor pages products are filtered by vendor; on category / branded-search pages
+                    by category. The Source Type below acts as a fallback for non-context pages.
+                </p>
+            </div>
+
             {/* Content Source */}
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-4">
                 <h4 className="font-semibold text-sm text-gray-900 border-b pb-2">Content Source</h4>
