@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 import ProductForm from "@/components/products/ProductForm";
+import ImageUploader from "@/components/config/ImageUploader";
 
 export default function CategoriesPage() {
     // Navigation State
@@ -783,14 +784,12 @@ export default function CategoriesPage() {
                                                 value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Visual Icon URL</label>
-                                        <div className="flex gap-4 items-start">
-                                            <input type="url" className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 outline-none"
-                                                value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} placeholder="https://..." />
-                                            {formData.image_url && <img src={formData.image_url} className="w-12 h-12 rounded-xl object-cover border border-gray-100" />}
-                                        </div>
-                                    </div>
+                                    <ImageUploader 
+                                        label="Visual Icon"
+                                        value={formData.image_url}
+                                        onChange={(url) => setFormData({ ...formData, image_url: url })}
+                                        folder="categories"
+                                    />
                                     <div>
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Summary</label>
                                         <textarea rows={3} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-4 focus:ring-blue-100 outline-none"

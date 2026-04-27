@@ -8,6 +8,7 @@ import {
     ChevronRight, ChevronDown, Filter, Info, BarChart3, Tag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ImageUploader from '@/components/config/ImageUploader';
 
 const OPERATORS = {
     category: [{ label: 'Is In', value: 'in' }],
@@ -355,16 +356,20 @@ export default function CollectionsPage() {
                                             value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Public facing summary for this collection..." />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Hero Backdrop URL</label>
-                                            <input className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[1.5rem] text-xs font-mono focus:ring-8 focus:ring-blue-100 outline-none"
-                                                value={formData.image_url} onChange={e => setFormData({ ...formData, image_url: e.target.value })} placeholder="https://..." />
-                                        </div>
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Visual Index Thumb</label>
-                                            <input className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[1.5rem] text-xs font-mono focus:ring-8 focus:ring-blue-100 outline-none"
-                                                value={formData.thumbnail_url} onChange={e => setFormData({ ...formData, thumbnail_url: e.target.value })} placeholder="https://..." />
-                                        </div>
+                                        <ImageUploader 
+                                            label="Hero Backdrop"
+                                            value={formData.image_url}
+                                            onChange={(url) => setFormData({ ...formData, image_url: url })}
+                                            aspectRatio="21/9"
+                                            folder="collections"
+                                        />
+                                        <ImageUploader 
+                                            label="Visual Index Thumb"
+                                            value={formData.thumbnail_url}
+                                            onChange={(url) => setFormData({ ...formData, thumbnail_url: url })}
+                                            aspectRatio="1/1"
+                                            folder="collections"
+                                        />
                                     </div>
                                 </div>
                             )}

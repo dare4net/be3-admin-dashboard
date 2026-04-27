@@ -128,6 +128,7 @@ export default function BusinessTab({ user, onUpdate }) {
                                             value={formData.business_thumbnail}
                                             onChange={(url) => setFormData({ ...formData, business_thumbnail: url })}
                                             aspectRatio="16/9"
+                                            folder="businesses"
                                         />
                                     </div>
 
@@ -137,6 +138,7 @@ export default function BusinessTab({ user, onUpdate }) {
                                             value={formData.business_backdrop}
                                             onChange={(url) => setFormData({ ...formData, business_backdrop: url })}
                                             aspectRatio="21/9"
+                                            folder="businesses"
                                         />
                                     </div>
                                 </div>

@@ -8,6 +8,7 @@ import {
     Loader2, Save, ArrowLeft, Tag
 } from "lucide-react";
 import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
+import PremiumImageUpload from "@/components/ui/PremiumImageUpload";
 
 export default function ProductForm({ categoryId, onSuccess, onCancel }) {
     // Collapsible sections state
@@ -168,13 +169,12 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                         </div>
 
                         <div>
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Product Cover URL</label>
-                            <div className="flex gap-4 items-start flex-col md:flex-row">
-                                <input type="url" className="flex-1 w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm ml-0 focus:ring-4 focus:ring-blue-100 outline-none transition-all"
-                                    value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                    placeholder="https://..." />
-                                {formData.image_url && <img src={formData.image_url} alt="Preview" className="w-20 h-20 object-cover rounded-2xl border border-gray-100 bg-gray-50 shadow-sm" onError={(e) => e.target.style.display = 'none'} />}
-                            </div>
+                            <PremiumImageUpload 
+                                label="Product Digital Asset (Cover)"
+                                value={formData.image_url}
+                                onChange={(url) => setFormData({ ...formData, image_url: url })}
+                                folder="products"
+                            />
                         </div>
 
                         <div>

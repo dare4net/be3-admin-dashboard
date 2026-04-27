@@ -112,37 +112,112 @@ export default function SpecialistForms({
         case 'search_page_layout':
             return (
                 <div className="space-y-6">
+
+                    {/* ── 1. Layout ── */}
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4">
-                        <h4 className="font-semibold text-sm text-blue-900 border-b pb-2">Layout Configuration</h4>
+                        <h4 className="font-semibold text-sm text-blue-900 border-b border-blue-200 pb-2">Layout</h4>
 
                         <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-gray-700">Display Sidebar Filters</label>
-                            <ToggleButton
-                                value={config.sidebarEnabled !== false}
-                                onChange={v => updateConfig('sidebarEnabled', v)}
-                            />
+                            <label className="text-sm font-medium text-gray-700">Sidebar Filters (Desktop)</label>
+                            <ToggleButton value={config.sidebarEnabled !== false} onChange={v => updateConfig('sidebarEnabled', v)} />
                         </div>
 
                         <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-gray-700">Show Mobile Filters</label>
-                            <ToggleButton
-                                value={config.showFilters !== false}
-                                onChange={v => updateConfig('showFilters', v)}
-                            />
+                            <label className="text-sm font-medium text-gray-700">Mobile Filter Button</label>
+                            <ToggleButton value={config.showFilters !== false} onChange={v => updateConfig('showFilters', v)} />
+                        </div>
+
+                        <div className="space-y-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Results Grid Columns</p>
+                            <div className="grid grid-cols-3 gap-3">
+                                <Input label="Desktop" type="number" value={config.columns?.desktop || 5} onChange={v => updateConfig('columns', { ...(config.columns || {}), desktop: parseInt(v) })} min={1} max={6} />
+                                <Input label="Tablet" type="number" value={config.columns?.tablet || 3} onChange={v => updateConfig('columns', { ...(config.columns || {}), tablet: parseInt(v) })} min={1} max={6} />
+                                <Input label="Mobile" type="number" value={config.columns?.mobile || 2} onChange={v => updateConfig('columns', { ...(config.columns || {}), mobile: parseInt(v) })} min={1} max={6} />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-4">
-                        <h4 className="font-semibold text-sm text-gray-900 border-b pb-2">Results Grid (Columns)</h4>
-                        <div className="grid grid-cols-3 gap-3">
-                            <Input label="Desktop" type="number" value={config.columns?.desktop || 5} onChange={v => updateConfig('columns', { ...(config.columns || {}), desktop: parseInt(v) })} min={1} max={6} />
-                            <Input label="Tablet" type="number" value={config.columns?.tablet || 3} onChange={v => updateConfig('columns', { ...(config.columns || {}), tablet: parseInt(v) })} min={1} max={6} />
-                            <Input label="Mobile" type="number" value={config.columns?.mobile || 2} onChange={v => updateConfig('columns', { ...(config.columns || {}), mobile: parseInt(v) })} min={1} max={6} />
+                    {/* ── 2. Search UI ── */}
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 space-y-4">
+                        <h4 className="font-semibold text-sm text-purple-900 border-b border-purple-200 pb-2">Search UI</h4>
+
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Show Search Bar</label>
+                                <p className="text-xs text-gray-400">Text search input at the top of the page</p>
+                            </div>
+                            <ToggleButton value={config.showSearchBar !== false} onChange={v => updateConfig('showSearchBar', v)} />
                         </div>
-                        <p className="text-xs text-gray-500 italic">Adjust how many products appear per row in the search results.</p>
+
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Show Image Search Bar</label>
+                                <p className="text-xs text-gray-400">Upload an image to search by visual similarity</p>
+                            </div>
+                            <ToggleButton value={config.showImageSearchBar !== false} onChange={v => updateConfig('showImageSearchBar', v)} />
+                        </div>
+                    </div>
+
+                    {/* ── 3. Results Header ── */}
+                    <div className="p-4 bg-amber-50 rounded-lg border border-amber-200 space-y-4">
+                        <h4 className="font-semibold text-sm text-amber-900 border-b border-amber-200 pb-2">Results Header</h4>
+
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Show Active Filters Bar</label>
+                                <p className="text-xs text-gray-400">Dismissible chips for each active filter</p>
+                            </div>
+                            <ToggleButton value={config.showActiveFiltersBar !== false} onChange={v => updateConfig('showActiveFiltersBar', v)} />
+                        </div>
+                    </div>
+
+                    {/* ── 4. Product Card ── */}
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+                        <h4 className="font-semibold text-sm text-gray-900 border-b border-gray-200 pb-2">Product Card</h4>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { key: 'showPrice',        label: 'Price' },
+                                { key: 'showAddToCart',    label: 'Add to Cart' },
+                                { key: 'showFeaturedBadge',label: 'Featured Badge' },
+                                { key: 'showDescription',  label: 'Description' },
+                                { key: 'showTags',         label: 'Tags' },
+                                { key: 'showAttributes',   label: 'Attributes' },
+                                { key: 'showSocialProof',  label: 'Social Proof' },
+                                { key: 'showRating',       label: 'Rating ★' },
+                            ].map(({ key, label }) => (
+                                <div key={key} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
+                                    <span className="text-sm font-medium text-gray-700">{label}</span>
+                                    <ToggleButton
+                                        value={config[key] !== false && config[key] !== undefined ? config[key] : (key === 'showTags' || key === 'showAttributes' || key === 'showRating' ? false : true)}
+                                        onChange={v => updateConfig(key, v)}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700">Card Scale</label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="range"
+                                    min="0.5"
+                                    max="1.2"
+                                    step="0.05"
+                                    value={config.cardScale ?? 0.9}
+                                    onChange={e => updateConfig('cardScale', parseFloat(e.target.value))}
+                                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                />
+                                <span className="text-sm font-mono font-bold text-gray-700 w-10 text-right">
+                                    {(config.cardScale ?? 0.9).toFixed(2)}
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-400">Controls relative size of card content (0.5 = compact, 1.2 = large)</p>
+                        </div>
                     </div>
                 </div>
             );
+
 
         case 'featured_product':
             return (

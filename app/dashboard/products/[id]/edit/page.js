@@ -11,6 +11,7 @@ import {
 import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 
 import VariantManager from "@/components/products/VariantManager";
+import PremiumImageUpload from "@/components/ui/PremiumImageUpload";
 
 export default function EditProductPage() {
     const router = useRouter();
@@ -376,13 +377,13 @@ export default function EditProductPage() {
                                             <span className="block text-[9px] font-black text-blue-400 mt-0.5 uppercase tracking-tighter">Showcase this item in featured collections</span>
                                         </label>
                                     </div>
-                                    <div className="col-span-1 md:col-span-2 space-y-2">
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Image URL</label>
-                                        <div className="flex gap-4 items-start">
-                                            <input type="url" className="flex-1 px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-200"
-                                                value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} placeholder="https://cdn.example.com/p123.jpg" />
-                                            {formData.image_url && <img src={formData.image_url} className="w-14 h-14 rounded-lg object-cover border border-gray-100" />}
-                                        </div>
+                                    <div className="col-span-1 md:col-span-2">
+                                        <PremiumImageUpload 
+                                            label="Product Digital Asset"
+                                            value={formData.image_url}
+                                            onChange={(url) => setFormData({ ...formData, image_url: url })}
+                                            folder="products"
+                                        />
                                     </div>
                                     <div className="col-span-1 md:col-span-2 space-y-2">
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>

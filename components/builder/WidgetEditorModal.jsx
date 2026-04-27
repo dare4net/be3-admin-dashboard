@@ -660,9 +660,26 @@ export function getDefaultConfig(widgetType) {
             columns: { desktop: 4, tablet: 2, mobile: 1 }
         },
         search_page_layout: {
-            columns: { desktop: 4, tablet: 2, mobile: 1 },
+            // Layout
+            columns: { desktop: 5, tablet: 3, mobile: 2 },
             sidebarEnabled: true,
-            showFilters: true
+            showFilters: true,
+            // Search UI
+            showSearchBar: true,
+            showImageSearchBar: true,
+            // Results header
+            showActiveFiltersBar: true,
+            // Product card — mirrors product_carousel defaults
+            showPrice: true,
+            showAddToCart: true,
+            showFeaturedBadge: true,
+            showViewDetails: true,
+            showTags: false,
+            showDescription: true,
+            showAttributes: false,
+            showSocialProof: true,
+            showRating: false,
+            cardScale: 0.9,
         }
     };
     return defaults[widgetType] || {};
