@@ -13,6 +13,7 @@ export default function BusinessTab({ user, onUpdate }) {
         business_name: user?.business_name || "",
         business_thumbnail: user?.business_thumbnail || "",
         business_backdrop: user?.business_backdrop || "",
+        business_description: user?.business_description || "",
         checkout_style: user?.checkout_style || "inhouse",
         whatsapp_phone: user?.whatsapp_phone || ""
     });
@@ -25,6 +26,7 @@ export default function BusinessTab({ user, onUpdate }) {
                 business_name: formData.business_name,
                 business_thumbnail: formData.business_thumbnail,
                 business_backdrop: formData.business_backdrop,
+                business_description: formData.business_description,
                 checkout_style: formData.checkout_style,
                 whatsapp_phone: formData.whatsapp_phone
             });
@@ -69,6 +71,30 @@ export default function BusinessTab({ user, onUpdate }) {
                                 <p className="text-[10px] font-medium text-gray-400">
                                     This updates your global brand identity across all storefronts.
                                 </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                    Brand Story / Description
+                                </label>
+                                <textarea
+                                    value={formData.business_description}
+                                    onChange={(e) => setFormData({ ...formData, business_description: e.target.value })}
+                                    maxLength={150}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-medium focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-200 min-h-[120px] resize-none"
+                                    placeholder="Tell your customers about your business..."
+                                />
+                                <div className="flex justify-between items-center">
+                                    <p className="text-[10px] font-medium text-gray-400">
+                                        This description appears on your storefront profile and hero sections.
+                                    </p>
+                                    <span className={cn(
+                                        "text-[10px] font-black tracking-widest uppercase",
+                                        (formData.business_description?.length || 0) >= 140 ? "text-orange-500" : "text-gray-300"
+                                    )}>
+                                        {formData.business_description?.length || 0} / 150
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="pt-4 border-t border-gray-50">
