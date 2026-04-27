@@ -109,41 +109,10 @@ export default function ImageUploader({
                             <input
                                 type="url"
                                 value={value || ''}
-                                onChange={async (e) => {
-                                    const val = e.target.value;
-                                    onChange(val);
-                                    
-                                    // Auto-sync to Cloudinary if it's a valid remote URL
-                                    if (val && val.startsWith('http') && !val.includes('cloudinary.com')) {
-                                        setIsUploading(true);
-                                        try {
-                                            const response = await api.post('/media/upload', {
-                                                url: val,
-                                                folder: folder
-                                            });
-                                            if (response.data.success) {
-                                                onChange(response.data.url);
-                                            }
-                                        } catch (e) {
-                                            console.error("Auto-sync failed:", e);
-                                        } finally {
-                                            setIsUploading(false);
-                                        }
-                                    }
-                                }}
-                                placeholder="Paste link to auto-mirror..."
+                                onChange={(e) => onChange(e.target.value)}
+                                placeholder="Paste image link here..."
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-300"
                             />
-                            {isUploading && (
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                                </div>
-                            )}
-                            {!isUploading && value?.includes('cloudinary.com') && (
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                </div>
-                            )}
                         </div>
                         {value && (
                             <button

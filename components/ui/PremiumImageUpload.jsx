@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
-import { Upload, X, Loader2, Image as ImageIcon, CheckCircle2, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Upload, X, Loader2, CheckCircle2, Link as LinkIcon, ExternalLink, Info } from "lucide-react";
 
 /**
  * Premium Image Upload Component (Enhanced)
@@ -191,40 +191,15 @@ export default function PremiumImageUpload({
                                 onChange={async (e) => {
                                     const val = e.target.value;
                                     onChange(val);
-
-                                    // Auto-sync to Cloudinary if it's a valid remote URL
-                                    if (val && val.startsWith('http') && !val.includes('cloudinary.com')) {
-                                        setIsUploading(true);
-                                        try {
-                                            const response = await api.post('/media/upload', {
-                                                url: val,
-                                                folder: folder
-                                            });
-                                            if (response.data.success) {
-                                                onChange(response.data.url);
-                                                setUploadStatus('success');
-                                                setTimeout(() => setUploadStatus(null), 2000);
-                                            }
-                                        } catch (e) {
-                                            console.error("Auto-sync failed:", e);
-                                        } finally {
-                                            setIsUploading(false);
-                                        }
-                                    }
+                                    // Auto-sync removed - moved to backend Save event
                                 }}
-                                placeholder="Paste link to auto-optimize..."
+                                placeholder="Paste external link..."
                                 className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-[24px] text-sm focus:ring-8 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-300"
                             />
-                            {isUploading && <Loader2 className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-600 animate-spin" />}
-                            {!isUploading && !value?.includes('cloudinary.com') && <LinkIcon className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />}
-                            {!isUploading && value?.includes('cloudinary.com') && <CheckCircle2 className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />}
+                            <LinkIcon className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
                         </div>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] px-4 flex items-center gap-2">
-                            {value?.includes('cloudinary.com') ? (
-                                <><CheckCircle2 className="w-3 h-3 text-green-500" /> Asset successfully mirrored to be3 cloud</>
-                            ) : (
-                                <><Info className="w-3 h-3" /> External URLs are automatically imported and optimized</>
-                            )}
+                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">
+                            <Info className="w-3 h-3 inline mr-1" /> External URLs will be automatically optimized on save
                         </p>
                     </div>
                     )}
