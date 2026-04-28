@@ -15,7 +15,8 @@ export default function CategoryForms({
     openSections,
     toggleSection
 }) {
-    const isCarousel = widgetType === 'category_carousel';
+    const isCarousel = ['category_carousel', 'clause_carousel'].includes(widgetType);
+    const isClause = ['clause_grid', 'clause_carousel'].includes(widgetType);
 
     return (
         <>
@@ -24,7 +25,92 @@ export default function CategoryForms({
                 <Input label="Subtitle" value={config.subtitle || ''} onChange={v => updateConfig('subtitle', v)} />
             </div>
 
-            {/* Context-Aware Mode */}
+            {/* Clause Configuration (only for clause widgets) */}
+            {isClause && (
+                <CollapsibleSection
+                    title="Clause Traversal"
+                    icon={<Box size={18} />}
+                    isOpen={openSections.content}
+                    onToggle={() => toggleSection('content')}
+                >
+                    <Select
+                        label="Traversal Mode"
+                        value={config.traversalMode || 'category_fixed_attribute_traverse_clauses'}
+                        onChange={v => updateConfig('traversalMode', v)}
+                        options={[
+                            { value: 'category_fixed_attribute_traverse_clauses', label: '1 Category + 1 Attribute → N Clauses' },
+                            { value: 'category_fixed_traverse_attributes', label: '1 Category → N Attributes (1 clause each)' },
+                            { value: 'traverse_categories_fixed_attribute', label: 'N Categories + 1 Attribute' },
+                            { value: 'controlled_random', label: 'Controlled Random' }
+                        ]}
+                    />
+
+                    {/* Attribute selector (modes 1 & 3) */}
+                    {['category_fixed_attribute_traverse_clauses', 'traverse_categories_fixed_attribute'].includes(config.traversalMode) && (
+                        <Select
+                            label="Attribute"
+                            value={config.attributeCode || ''}
+                            onChange={v => updateConfig('attributeCode', v)}
+                            options={[
+                                { value: '', label: 'Select Attribute' },
+                                ...attributes.map(a => ({ value: a.code, label: a.label || a.code }))
+                            ]}
+                        />
+                    )}
+
+                    {/* Single category (modes 1 & 2) */}
+                    {['category_fixed_attribute_traverse_clauses', 'category_fixed_traverse_attributes'].includes(config.traversalMode) && (
+                        <Select
+                            label="Category"
+                            value={config.categoryId || ''}
+                            onChange={v => updateConfig('categoryId', v)}
+                            options={[
+                                { value: '', label: 'Select Category' },
+                                ...categories.map(c => ({ value: c.id, label: c.name }))
+                            ]}
+                        />
+                    )}
+
+                    {/* Category source (modes 3 & 4) */}
+                    {['traverse_categories_fixed_attribute', 'controlled_random'].includes(config.traversalMode) && (
+                        <>
+                            <Select
+                                label="Category Source"
+                                value={config.sourceType || 'top-level'}
+                                onChange={v => updateConfig('sourceType', v)}
+                                options={[
+                                    { value: 'top-level', label: 'Top-Level Categories' },
+                                    { value: 'subcategories', label: 'Subcategories of...' },
+                                    { value: 'descendants', label: 'All Descendants of...' }
+                                ]}
+                            />
+                            {['subcategories', 'descendants'].includes(config.sourceType) && (
+                                <Select
+                                    label="Parent Category"
+                                    value={config.parentCategoryId || ''}
+                                    onChange={v => updateConfig('parentCategoryId', v)}
+                                    options={[
+                                        { value: '', label: 'Select Parent' },
+                                        ...categories.map(c => ({ value: c.id, label: c.name }))
+                                    ]}
+                                />
+                            )}
+                        </>
+                    )}
+
+                    <Input label="Max Items" type="number" value={config.maxItems || 12} onChange={v => updateConfig('maxItems', parseInt(v))} />
+
+                    {config.traversalMode === 'controlled_random' && (
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm font-medium">Allow Repeat Attributes</span>
+                            <ToggleButton value={config.allowRepeatAttribute || false} onChange={v => updateConfig('allowRepeatAttribute', v)} />
+                        </div>
+                    )}
+                </CollapsibleSection>
+            )}
+
+            {/* Context-Aware Mode (category widgets only) */}
+            {!isClause && (
             <div className="p-4 rounded-xl border-2 border-teal-200 bg-teal-50 space-y-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -43,7 +129,10 @@ export default function CategoryForms({
                     Source Type below is used as fallback on non-context pages.
                 </p>
             </div>
+            )}
 
+            {/* Category Selection (category widgets only) */}
+            {!isClause && (
             <CollapsibleSection
                 title="Category Selection"
                 icon={<Box size={18} />}
@@ -119,6 +208,7 @@ export default function CategoryForms({
                     <Input label="Max Categories" type="number" value={config.maxCategories || 12} onChange={v => updateConfig('maxCategories', parseInt(v))} />
                 </div>
             </CollapsibleSection>
+            )}
 
             <CollapsibleSection
                 title="Layout & Structure"

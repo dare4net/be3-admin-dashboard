@@ -386,7 +386,7 @@ function renderWidgetForm(
         return <ProductForms {...commonProps} />;
     }
 
-    if (['category_carousel', 'category_grid'].includes(widgetType)) {
+    if (['category_carousel', 'category_grid', 'clause_grid', 'clause_carousel'].includes(widgetType)) {
         return <CategoryForms {...commonProps} />;
     }
 
@@ -568,6 +568,48 @@ export function getDefaultConfig(widgetType) {
             categoryTitleFontSizeMobile: 14,
             categoryTitleFontWeight: 600,
             categoryTitleAlignment: 'center'
+        },
+        clause_grid: {
+            title: 'Shop by Brand',
+            columns: { desktop: 4, tablet: 3, mobile: 2 },
+            gridGap: '12px',
+            titleFontSize: '1.2rem',
+            fullWidthTitle: true,
+            titlePadding: '10px',
+            titleBottomMargin: '15px',
+            sectionPaddingTop: '5px',
+            sectionPaddingBottom: '5px',
+            categoryTitleColor: '#ffffff',
+            categoryTitleFontSizeDesktop: 18,
+            categoryTitleFontSizeTablet: 16,
+            categoryTitleFontSizeMobile: 14,
+            categoryTitleFontWeight: 600,
+            categoryTitleAlignment: 'center',
+            traversalMode: 'category_fixed_attribute_traverse_clauses',
+            maxItems: 8
+        },
+        clause_carousel: {
+            title: 'Browse Collections',
+            showSectionTitle: true,
+            columns: { desktop: 5, tablet: 3, mobile: 2 },
+            gap: 'md',
+            gridGap: '12px',
+            infiniteLoop: true,
+            peekEffect: false,
+            titleFontSize: '1.2rem',
+            fullWidthTitle: true,
+            titlePadding: '10px',
+            titleBottomMargin: '15px',
+            sectionPaddingTop: '5px',
+            sectionPaddingBottom: '5px',
+            categoryTitleColor: '#ffffff',
+            categoryTitleFontSizeDesktop: 18,
+            categoryTitleFontSizeTablet: 16,
+            categoryTitleFontSizeMobile: 14,
+            categoryTitleFontWeight: 600,
+            categoryTitleAlignment: 'center',
+            traversalMode: 'category_fixed_attribute_traverse_clauses',
+            maxItems: 12
         },
         featured_product: { productId: '', title: 'Product of the Month' },
         promo_banner: { title: 'Sale', backgroundColor: '#3b82f6', textColor: '#ffffff' },
