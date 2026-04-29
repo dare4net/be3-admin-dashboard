@@ -31,7 +31,8 @@ export default function EditProductPage() {
         basic: true,
         attributes: true,
         seo: false,
-        tags: false
+        tags: false,
+        whats_included: false
     });
 
     const [formData, setFormData] = useState({
@@ -42,9 +43,11 @@ export default function EditProductPage() {
         og_image: "", og_type: "product", twitter_card: "summary_large_image",
         twitter_title: "", twitter_description: "", twitter_image: "",
         canonical_url: "", robots: "index,follow", structured_data: null,
-        parent_id: null, is_variant: false, variant_label: ""
+        parent_id: null, is_variant: false, variant_label: "",
+        whats_included: []
     });
     const [tagInput, setTagInput] = useState("");
+    const [whatsIncludedInput, setWhatsIncludedInput] = useState("");
     const [availableAttributes, setAvailableAttributes] = useState([]);
 
     useEffect(() => {
@@ -78,7 +81,8 @@ export default function EditProductPage() {
                     twitter_title: product.twitter_title || "", twitter_description: product.twitter_description || "",
                     twitter_image: product.twitter_image || "", canonical_url: product.canonical_url || "",
                     robots: product.robots || "index,follow", structured_data: product.structured_data || null,
-                    parent_id: product.parent_id, is_variant: product.is_variant, variant_label: product.variant_label || ""
+                    parent_id: product.parent_id, is_variant: product.is_variant, variant_label: product.variant_label || "",
+                    whats_included: product.whats_included || []
                 });
 
                 if (primaryCatId && catRes.data.categories) {
@@ -516,6 +520,68 @@ export default function EditProductPage() {
                                         <div className="w-full py-8 border border-dashed border-gray-100 rounded-xl flex flex-col items-center justify-center grayscale opacity-30">
                                             <Tag className="w-6 h-6 mb-2" />
                                             <p className="text-[9px] font-black uppercase tracking-widest">No tags defined for this listing</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* What's Included Section */}
+                    <div className="bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden">
+                        <button type="button" onClick={() => toggleSection('whats_included')} className="w-full flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors text-left">
+                            <div className="flex items-center gap-3">
+                                <Tag className="w-5 h-5 text-blue-600" />
+                                <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">What's Included</h2>
+                            </div>
+                            {expandedSections.whats_included ? <ChevronUp className="w-4 h-4 text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-300" />}
+                        </button>
+                        {expandedSections.whats_included && (
+                            <div className="p-6 pt-0 space-y-6 border-t border-gray-50 pt-6">
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Add Items Included</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            className="flex-1 px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                                            placeholder="e.g. 1x User Manual, 1x Charger"
+                                            value={whatsIncludedInput}
+                                            onChange={(e) => setWhatsIncludedInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ',') {
+                                                    e.preventDefault();
+                                                    const items = whatsIncludedInput.split(',').map(t => t.trim()).filter(t => t && !formData.whats_included.includes(t));
+                                                    if (items.length > 0) setFormData(prev => ({ ...prev, whats_included: [...prev.whats_included, ...items] }));
+                                                    setWhatsIncludedInput("");
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const items = whatsIncludedInput.split(',').map(t => t.trim()).filter(t => t && !formData.whats_included.includes(t));
+                                                if (items.length > 0) setFormData(prev => ({ ...prev, whats_included: [...prev.whats_included, ...items] }));
+                                                setWhatsIncludedInput("");
+                                            }}
+                                            className="px-6 py-3 bg-white border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all"
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {formData.whats_included.map(item => (
+                                        <div key={item} className="flex items-center gap-2 px-3 py-1.5 bg-green-50/50 border border-green-100 rounded-full group hover:bg-green-100 transition-all">
+                                            <span className="text-[10px] font-black text-green-700 uppercase tracking-widest">{item}</span>
+                                            <button type="button" onClick={() => setFormData(prev => ({ ...prev, whats_included: prev.whats_included.filter(i => i !== item) }))} className="text-green-300 hover:text-red-600 transition-colors">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {formData.whats_included.length === 0 && (
+                                        <div className="w-full py-8 border border-dashed border-gray-100 rounded-xl flex flex-col items-center justify-center grayscale opacity-30">
+                                            <Tag className="w-6 h-6 mb-2" />
+                                            <p className="text-[9px] font-black uppercase tracking-widest">No items defined</p>
                                         </div>
                                     )}
                                 </div>

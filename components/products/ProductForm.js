@@ -15,8 +15,9 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
     const [expandedSections, setExpandedSections] = useState({
         basic: true,
         attributes: true,
-        seo: false, // Collapsed by default per user request
-        tags: false  // Collapsed by default per user request
+        seo: false,
+        tags: false,
+        whats_included: false
     });
 
     const toggleSection = (section) => {
@@ -47,7 +48,8 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
         twitter_image: "",
         canonical_url: "",
         robots: "index,follow",
-        structured_data: null
+        structured_data: null,
+        whats_included: []
     });
 
     const [manualFields, setManualFields] = useState({
@@ -56,6 +58,7 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
         twitter_title: false
     });
     const [tagInput, setTagInput] = useState("");
+    const [whatsIncludedInput, setWhatsIncludedInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [availableAttributes, setAvailableAttributes] = useState([]);
     const [categoryName, setCategoryName] = useState("");
@@ -443,6 +446,53 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                                 </span>
                             ))}
                             {formData.tags.length === 0 && <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic text-center py-4 w-full">No active tags assigned</p>}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* What's Included Section */}
+            <div className="bg-white rounded-3xl shadow-none border border-gray-100 overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => toggleSection('whats_included')}
+                    className="w-full flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors"
+                >
+                    <h2 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em]">What's Included</h2>
+                    {expandedSections.whats_included ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                </button>
+
+                {expandedSections.whats_included && (
+                    <div className="p-6 pt-0 border-t border-gray-50/50">
+                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-4 mt-4">Items that come with this product</p>
+                        <div className="flex gap-3 mb-6">
+                            <input type="text" className="flex-1 px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                placeholder="e.g. 1x User Manual, 1x Charger"
+                                value={whatsIncludedInput}
+                                onChange={(e) => setWhatsIncludedInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ',') {
+                                        e.preventDefault();
+                                        const items = whatsIncludedInput.split(',').map(t => t.trim()).filter(t => t && !formData.whats_included.includes(t));
+                                        if (items.length > 0) setFormData(prev => ({ ...prev, whats_included: [...prev.whats_included, ...items] }));
+                                        setWhatsIncludedInput("");
+                                    }
+                                }}
+                            />
+                            <button type="button" onClick={() => {
+                                const items = whatsIncludedInput.split(',').map(t => t.trim()).filter(t => t && !formData.whats_included.includes(t));
+                                if (items.length > 0) setFormData(prev => ({ ...prev, whats_included: [...prev.whats_included, ...items] }));
+                                setWhatsIncludedInput("");
+                            }} className="px-8 py-3 bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/10">Add</button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {formData.whats_included.map((item) => (
+                                <span key={item} className="inline-flex items-center gap-3 px-4 py-2 bg-green-50 text-green-900 border border-green-100 rounded-2xl text-[10px] font-black uppercase tracking-tight">
+                                    {item}
+                                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, whats_included: prev.whats_included.filter(i => i !== item) }))} className="text-green-400 hover:text-red-600 transition-colors"><X className="w-3 h-3" /></button>
+                                </span>
+                            ))}
+                            {formData.whats_included.length === 0 && <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic text-center py-4 w-full">No items listed</p>}
                         </div>
                     </div>
                 )}
