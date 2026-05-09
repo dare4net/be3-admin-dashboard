@@ -4,7 +4,121 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/axios";
-import { ArrowLeft, Mail, Calendar, Package, Clock, DollarSign, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, Calendar, Package, Clock, DollarSign, Loader2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+
+// ─── KYC / KYB Toggle Panel ───────────────────────────────────────────────────
+function KycTogglePanel({ userId, type, status, documentUrl, livenessUrl, reviewedAt, rejectionReason, onUpdate }) {
+    const [loading, setLoading] = useState(false);
+    const [reason, setReason] = useState("");
+    const [showRejectInput, setShowRejectInput] = useState(false);
+
+    const handleApprove = async () => {
+        setLoading(true);
+        try {
+            await api.post(`/vendor/admin/${type}/${userId}/approve`);
+            onUpdate();
+        } catch (e) { alert(e.response?.data?.message || "Failed to approve"); }
+        finally { setLoading(false); }
+    };
+
+    const handleReject = async () => {
+        if (!reason.trim()) return alert("Please enter a rejection reason");
+        setLoading(true);
+        try {
+            await api.post(`/vendor/admin/${type}/${userId}/reject`, { reason });
+            onUpdate();
+            setShowRejectInput(false);
+            setReason("");
+        } catch (e) { alert(e.response?.data?.message || "Failed to reject"); }
+        finally { setLoading(false); }
+    };
+
+    const STATUS_DISPLAY = {
+        none:      { label: "Not Started",      color: "text-gray-400",  bg: "bg-gray-50 border-gray-100" },
+        submitted: { label: "Pending Review",   color: "text-amber-700", bg: "bg-amber-50 border-amber-100" },
+        approved:  { label: "Approved ✓",       color: "text-green-700", bg: "bg-green-50 border-green-100" },
+        rejected:  { label: "Rejected",         color: "text-red-700",   bg: "bg-red-50 border-red-100" },
+    };
+    const display = STATUS_DISPLAY[status] || STATUS_DISPLAY.none;
+
+    return (
+        <div className="space-y-3">
+            {/* Status badge */}
+            <div className={`inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-bold ${display.bg} ${display.color}`}>
+                {display.label}
+            </div>
+
+            {/* Document links */}
+            <div className="flex flex-wrap gap-2">
+                {documentUrl && (
+                    <a href={documentUrl} target="_blank" rel="noreferrer"
+                        className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:underline border border-blue-100 bg-blue-50 px-2 py-1 rounded-lg">
+                        View Document
+                    </a>
+                )}
+                {livenessUrl && (
+                    <a href={livenessUrl} target="_blank" rel="noreferrer"
+                        className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:underline border border-blue-100 bg-blue-50 px-2 py-1 rounded-lg">
+                        View Liveness
+                    </a>
+                )}
+            </div>
+
+            {/* Rejection reason */}
+            {status === "rejected" && rejectionReason && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 italic">
+                    "{rejectionReason}"
+                </p>
+            )}
+
+            {/* Reviewed at */}
+            {reviewedAt && (
+                <p className="text-[10px] text-gray-400">
+                    Reviewed {new Date(reviewedAt).toLocaleDateString()}
+                </p>
+            )}
+
+            {/* Toggle switcher — only show if submitted or already toggled (allow re-toggle) */}
+            {status !== "none" && (
+                <div className="flex gap-2 pt-1">
+                    <button
+                        onClick={handleApprove}
+                        disabled={loading || status === "approved"}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-all
+                            ${status === "approved"
+                                ? "bg-green-100 text-green-700 border-green-200 cursor-default"
+                                : "bg-white border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50"}`}>
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        {loading ? "..." : status === "approved" ? "Approved" : "Approve"}
+                    </button>
+                    <button
+                        onClick={() => setShowRejectInput(!showRejectInput)}
+                        disabled={loading || status === "rejected"}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-all
+                            ${status === "rejected"
+                                ? "bg-red-100 text-red-700 border-red-200 cursor-default"
+                                : "bg-white border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"}`}>
+                        <XCircle className="w-3.5 h-3.5" />
+                        {status === "rejected" ? "Rejected" : "Reject"}
+                    </button>
+                </div>
+            )}
+            {showRejectInput && (
+                <div className="flex flex-col gap-2">
+                    <input
+                        value={reason} onChange={e => setReason(e.target.value)}
+                        placeholder="Rejection reason..."
+                        className="w-full px-3 py-2 text-xs border border-red-200 rounded-lg focus:outline-none bg-white focus:border-red-400"
+                    />
+                    <button onClick={handleReject} disabled={loading || !reason.trim()}
+                        className="w-full py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase rounded-lg disabled:opacity-50 transition-all">
+                        {loading ? "..." : "Confirm Rejection"}
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function CustomerDetailsPage() {
     const { id } = useParams();
@@ -177,6 +291,46 @@ export default function CustomerDetailsPage() {
                                 </span>
                             </div>
                         </div>
+                    </div>
+
+                    {/* ── KYC Panel ── */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Identity Verification (KYC)
+                        </h3>
+                        <KycTogglePanel
+                            userId={id}
+                            type="kyc"
+                            status={user.kyc_status || "none"}
+                            documentUrl={user.kyc_document_url}
+                            livenessUrl={user.kyc_liveness_url}
+                            reviewedAt={user.kyc_reviewed_at}
+                            rejectionReason={user.kyc_rejection_reason}
+                            onUpdate={fetchData}
+                        />
+                    </div>
+
+                    {/* ── KYB Panel ── */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                            <ShieldAlert className="w-3.5 h-3.5" /> Business Verification (KYB)
+                        </h3>
+                        {user.kyc_status !== "approved" ? (
+                            <p className="text-xs text-gray-400 italic flex items-center gap-1.5">
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                                KYC must be approved first
+                            </p>
+                        ) : (
+                            <KycTogglePanel
+                                userId={id}
+                                type="kyb"
+                                status={user.kyb_status || "none"}
+                                documentUrl={user.kyb_document_url}
+                                reviewedAt={user.kyb_reviewed_at}
+                                rejectionReason={user.kyb_rejection_reason}
+                                onUpdate={fetchData}
+                            />
+                        )}
                     </div>
                 </div>
 

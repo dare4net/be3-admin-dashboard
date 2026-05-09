@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2, BarChart3, MessageSquare, Menu } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2, BarChart3, MessageSquare, Menu, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Sidebar from "@/components/dashboard/Sidebar";
 import BrandedLoading from "@/components/ui/BrandedLoading";
@@ -67,7 +67,13 @@ const navigation = [
         name: "Messages",
         href: "/dashboard/messages",
         icon: MessageSquare,
-        requiredPermission: "chat.access" // Assuming a permission for chat access
+        requiredPermission: "chat.access"
+    },
+    {
+        name: "Vendors",
+        href: "/dashboard/vendors",
+        icon: Store,
+        requiredPermissions: ["vendors.view", "vendors.manage"]
     },
     {
         name: "Settings",
