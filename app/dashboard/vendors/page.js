@@ -38,89 +38,125 @@ function StatusBadge({ status, label }) {
     );
 }
 
-// ─── KYC/KYB Review Row ────────────────────────────────────────────────────────
-function KycRow({ user, type, onAction }) {
-    const [reason, setReason] = useState("");
-    const [showReject, setShowReject] = useState(false);
-    const [loading, setLoading] = useState(false);
+// ─── KYC Queue Row ─────────────────────────────────────────────────────────────
+function KycRow({ user, onAction }) {
+    const router = useRouter();
 
-    const handleApprove = async () => {
-        setLoading(true);
-        try {
-            await api.post(`/vendor/admin/${type}/${user.id}/approve`);
-            onAction();
-        } catch (e) {
-            alert(e.response?.data?.message || "Failed to approve");
-        } finally { setLoading(false); }
-    };
+    const POI_LABELS = { NIN_SLIP: "NIN Slip", NATIONAL_ID: "National ID Card", PASSPORT: "International Passport", DRIVERS_LICENSE: "Driver's Licence", PVC: "Voter's Card (PVC)" };
 
-    const handleReject = async () => {
-        if (!reason.trim()) return alert("Please provide a rejection reason");
-        setLoading(true);
-        try {
-            await api.post(`/vendor/admin/${type}/${user.id}/reject`, { reason });
-            onAction();
-        } catch (e) {
-            alert(e.response?.data?.message || "Failed to reject");
-        } finally { setLoading(false); setShowReject(false); }
+    const poiStatus  = user.poi_status      || "none";
+    const liveStatus = user.liveness_status || "none";
+    const poaStatus  = user.poa_status      || "none";
+
+    const SUB_COLOR = {
+        none:      "bg-gray-50 text-gray-400 border-gray-100",
+        submitted: "bg-amber-50 text-amber-700 border-amber-100",
+        approved:  "bg-green-50 text-green-700 border-green-100",
+        rejected:  "bg-red-50 text-red-700 border-red-100",
     };
 
     return (
-        <div className="p-4 border-b border-gray-50 last:border-0">
+        <div
+            className="p-4 border-b border-gray-50 last:border-0 hover:bg-blue-50/30 cursor-pointer transition-colors"
+            onClick={() => router.push(`/dashboard/customers/${user.id}`)}
+        >
             <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
+                    <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs flex-shrink-0">
                         {user.first_name?.[0] || user.email[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
                         <p className="font-bold text-gray-900 text-sm">{user.first_name} {user.last_name}</p>
                         <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                        {user[`${type}_submitted_at`] && (
+                        {user.kyc_submitted_at && (
                             <p className="text-[10px] text-gray-400 mt-0.5">
-                                Submitted {new Date(user[`${type}_submitted_at`]).toLocaleDateString()}
+                                Submitted {new Date(user.kyc_submitted_at).toLocaleDateString()}
+                            </p>
+                        )}
+                        {/* Doc type */}
+                        {user.poi_doc_type && (
+                            <p className="text-[10px] text-purple-600 font-bold mt-0.5">
+                                {POI_LABELS[user.poi_doc_type] || user.poi_doc_type}
                             </p>
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                    {user[`${type}_document_url`] && (
-                        <a href={user[`${type}_document_url`]} target="_blank" rel="noreferrer"
-                            className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-lg hover:bg-gray-50 transition-all">
-                            View Doc
-                        </a>
-                    )}
-                    {type === "kyc" && user.kyc_liveness_url && (
-                        <a href={user.kyc_liveness_url} target="_blank" rel="noreferrer"
-                            className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-lg hover:bg-gray-50 transition-all">
-                            Liveness
-                        </a>
-                    )}
-                    <button onClick={handleApprove} disabled={loading}
-                        className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all disabled:opacity-50">
-                        {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Approve"}
-                    </button>
-                    <button onClick={() => setShowReject(!showReject)} disabled={loading}
-                        className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-red-50 hover:bg-red-100 text-red-700 border border-red-100 rounded-lg transition-all">
-                        Reject
-                    </button>
+
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    {/* Sub-section status pills */}
+                    <div className="flex items-center gap-1.5">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${SUB_COLOR[poiStatus]}`}>POI: {poiStatus}</span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${SUB_COLOR[liveStatus]}`}>Live: {liveStatus}</span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${SUB_COLOR[poaStatus]}`}>POA: {poaStatus}</span>
+                    </div>
+
+                    {/* Quick document links — stop propagation so row click doesn't fire */}
+                    <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                        {user.poi_doc_url && (
+                            <a href={user.poi_doc_url} target="_blank" rel="noreferrer"
+                                className="px-2 py-1 text-[9px] font-black uppercase tracking-widest border border-gray-100 rounded-lg hover:bg-gray-50 transition-all">
+                                POI Doc ↗
+                            </a>
+                        )}
+                        {user.liveness_video_url && (
+                            <a href={user.liveness_video_url} target="_blank" rel="noreferrer"
+                                className="px-2 py-1 text-[9px] font-black uppercase tracking-widest border border-gray-100 rounded-lg hover:bg-gray-50 transition-all">
+                                Video ↗
+                            </a>
+                        )}
+                        {user.poa_doc_url && (
+                            <a href={user.poa_doc_url} target="_blank" rel="noreferrer"
+                                className="px-2 py-1 text-[9px] font-black uppercase tracking-widest border border-gray-100 rounded-lg hover:bg-gray-50 transition-all">
+                                POA Doc ↗
+                            </a>
+                        )}
+                        <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 px-2 py-1 border border-blue-100 bg-blue-50 rounded-lg">
+                            Review →
+                        </span>
+                    </div>
                 </div>
             </div>
-            {showReject && (
-                <div className="mt-3 flex gap-2">
-                    <input
-                        value={reason} onChange={e => setReason(e.target.value)}
-                        placeholder="Reason for rejection..."
-                        className="flex-1 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400"
-                    />
-                    <button onClick={handleReject} disabled={loading || !reason.trim()}
-                        className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all disabled:opacity-50">
-                        Confirm
-                    </button>
-                </div>
-            )}
         </div>
     );
 }
+
+// ─── KYB Queue Row ─────────────────────────────────────────────────────────────
+function KybRow({ user }) {
+    const router = useRouter();
+    return (
+        <div
+            className="p-4 border-b border-gray-50 last:border-0 hover:bg-emerald-50/30 cursor-pointer transition-colors"
+            onClick={() => router.push(`/dashboard/customers/${user.id}`)}
+        >
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs flex-shrink-0">
+                        {user.first_name?.[0] || user.email[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="font-bold text-gray-900 text-sm">{user.first_name} {user.last_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        {user.kyb_submitted_at && (
+                            <p className="text-[10px] text-gray-400 mt-0.5">Submitted {new Date(user.kyb_submitted_at).toLocaleDateString()}</p>
+                        )}
+                    </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                    {user.kyb_cac_url && (
+                        <a href={user.kyb_cac_url} target="_blank" rel="noreferrer"
+                            className="px-2 py-1 text-[9px] font-black uppercase tracking-widest border border-gray-100 rounded-lg hover:bg-gray-50 transition-all">
+                            CAC Doc ↗
+                        </a>
+                    )}
+                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 px-2 py-1 border border-emerald-100 bg-emerald-50 rounded-lg">
+                        Review →
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 // ─── Active Vendor Row ─────────────────────────────────────────────────────────
 function VendorRow({ vendor, onAction }) {
@@ -324,11 +360,11 @@ export default function VendorsPage() {
                     </table>
                 ) : activeTab === "kyc" ? (
                     <div className="divide-y divide-gray-50">
-                        {data.map(u => <KycRow key={u.id} user={u} type="kyc" onAction={fetchData} />)}
+                        {data.map(u => <KycRow key={u.id} user={u} onAction={fetchData} />)}
                     </div>
                 ) : activeTab === "kyb" ? (
                     <div className="divide-y divide-gray-50">
-                        {data.map(u => <KycRow key={u.id} user={u} type="kyb" onAction={fetchData} />)}
+                        {data.map(u => <KybRow key={u.id} user={u} />)}
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-50">
