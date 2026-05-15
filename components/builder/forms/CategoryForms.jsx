@@ -144,6 +144,7 @@ export default function CategoryForms({
                     value={config.sourceType || 'top-level'}
                     onChange={v => updateConfig('sourceType', v)}
                     options={[
+                        { value: 'all', label: 'All Categories (with Products)' },
                         { value: 'top-level', label: 'All Top-Level Categories' },
                         { value: 'subcategories', label: 'Subcategories of Parent' },
                         { value: 'all-subcategories', label: 'All Subcategories' },

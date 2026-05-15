@@ -214,7 +214,7 @@ export function RandomizationConfig({ config, updateNestedConfig, categories, co
                                     limitRange: { min: 4, max: 12 },
                                     randomizeFeatured: false,
                                     randomizeCategorySource: false,
-                                    allowedCategorySourceTypes: ['top-level', 'all-subcategories', 'random']
+                                    allowedCategorySourceTypes: ['all', 'top-level', 'all-subcategories', 'random']
                                 });
                             } else {
                                 updateNestedConfig('randomize.enabled', v);
@@ -358,9 +358,10 @@ export function RandomizationConfig({ config, updateNestedConfig, categories, co
                                     <div className="pl-4 border-l-2 border-purple-100 mt-2">
                                         <MultiSelect
                                             label="Allowed Category Source Types"
-                                            value={randomize.allowedCategorySourceTypes || ['top-level', 'all-subcategories', 'random']}
+                                            value={randomize.allowedCategorySourceTypes || ['all', 'top-level', 'all-subcategories', 'random']}
                                             onChange={v => updateNestedConfig('randomize.allowedCategorySourceTypes', v)}
                                             options={[
+                                                { value: 'all', label: 'All (with Products)' },
                                                 { value: 'top-level', label: 'Top-Level' },
                                                 { value: 'all-subcategories', label: 'All Subcategories' },
                                                 { value: 'random', label: 'Random Selection' }
@@ -368,6 +369,21 @@ export function RandomizationConfig({ config, updateNestedConfig, categories, co
                                         />
                                     </div>
                                 )}
+
+                                <div className="border-t border-gray-100 pt-3">
+                                    <Select
+                                        label="Sort Order (after randomization)"
+                                        value={config.sortOrder || 'alphabetical'}
+                                        onChange={v => updateNestedConfig('sortOrder', v)}
+                                        options={[
+                                            { value: 'alphabetical', label: 'Alphabetical (A–Z)' },
+                                            { value: 'random', label: 'Shuffle on Load' }
+                                        ]}
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1 italic">
+                                        Applied to the randomized selection after the service draws it.
+                                    </p>
+                                </div>
                             </>
                         )}
                     </div>
