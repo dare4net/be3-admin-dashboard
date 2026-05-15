@@ -11,6 +11,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import BrandedLoading from "@/components/ui/BrandedLoading";
 import OnboardingSlides from "@/components/dashboard/OnboardingSlides";
 import ProductTour from "@/components/dashboard/ProductTour";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const navigation = [
     {
@@ -90,6 +91,9 @@ export default function DashboardLayout({ children }) {
     const pathname = usePathname();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Request push permission only after login — inside the authenticated dashboard
+    usePushNotifications();
 
     // Onboarding and Tour States
     const [showOnboarding, setShowOnboarding] = useState(false);

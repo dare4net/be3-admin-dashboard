@@ -1,6 +1,8 @@
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthContext";
+import { SocketProvider } from "@/components/providers/SocketContext";
+import { Toaster } from "react-hot-toast";
 
 const manrope = Manrope({ subsets: ["latin"] });
 
@@ -16,9 +18,12 @@ export default function RootLayout({ children }) {
         <html lang="en">
             <body className={manrope.className}>
                 <AuthProvider>
-                    <RootWrapper>
-                        {children}
-                    </RootWrapper>
+                    <SocketProvider>
+                        <RootWrapper>
+                            {children}
+                        </RootWrapper>
+                        <Toaster position="top-right" />
+                    </SocketProvider>
                 </AuthProvider>
             </body>
         </html>
