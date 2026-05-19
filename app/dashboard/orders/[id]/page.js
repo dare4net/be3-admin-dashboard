@@ -227,11 +227,17 @@ export default function OrderDetailsPage() {
                         <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 space-y-2">
                             <div className="flex justify-between text-sm text-gray-600">
                                 <span>Subtotal</span>
-                                <span>₦{parseFloat(order.subtotal).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+                                <span>₦{parseFloat(order.subtotal || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
                             </div>
+                            {parseFloat(order.discount_amount || 0) > 0 && (
+                                <div className="flex justify-between text-sm text-green-600 font-medium">
+                                    <span>Discount {order.coupon_code ? `(${order.coupon_code})` : ''}</span>
+                                    <span>− ₦{parseFloat(order.discount_amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
                                 <span>Total</span>
-                                <span>₦{parseFloat(order.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+                                <span>₦{parseFloat(order.total || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
                             </div>
                         </div>
                     </div>

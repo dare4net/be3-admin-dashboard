@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Tag, Percent, DollarSign, Truck, Calendar, AlertCircle } from "lucide-react";
+import { ArrowLeft, Tag, Percent, DollarSign, Truck, Calendar, AlertCircle, Layers } from "lucide-react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 
@@ -11,6 +11,11 @@ const TYPES = [
     { value: 'percentage',    label: '% Discount',    icon: Percent,    desc: 'e.g. 20% off the order total' },
     { value: 'fixed',         label: 'Fixed Amount',  icon: DollarSign, desc: 'e.g. ₦500 off the order total' },
     { value: 'free_shipping', label: 'Free Shipping', icon: Truck,      desc: 'Remove shipping cost from order' },
+];
+
+const APPLICABILITY = [
+    { value: 'all', label: 'All Items' },
+    { value: 'categories', label: 'Specific Categories' },
 ];
 
 export default function CreateCouponPage() {
@@ -23,11 +28,26 @@ export default function CreateCouponPage() {
         value: '',
         min_order_value: '',
         max_uses: '',
+        max_uses_per_user: '',
+        applicable_to: 'all',
+        applicable_ids: [],
         starts_at: new Date().toISOString().slice(0, 16),
         expires_at: '',
         is_active: true,
     });
+    const [categories, setCategories] = useState([]);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        const loadCats = async () => {
+            try {
+                const res = await api.get('/products/categories/vendor-active');
+                // Ensure array, whether standard payload or paginated wrapper
+                setCategories(Array.isArray(res.data) ? res.data : (res.data.categories || res.data.data || []));
+            } catch (e) { console.error('Failed to load categories', e); }
+        };
+        loadCats();
+    }, []);
 
     const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -57,6 +77,9 @@ export default function CreateCouponPage() {
                 value: form.type === 'free_shipping' ? 0 : parseFloat(form.value),
                 min_order_value: parseFloat(form.min_order_value || 0),
                 max_uses: form.max_uses ? parseInt(form.max_uses) : null,
+                max_uses_per_user: form.max_uses_per_user ? parseInt(form.max_uses_per_user) : null,
+                applicable_to: form.applicable_to,
+                applicable_ids: form.applicable_ids,
                 expires_at: form.expires_at || null,
             };
 
@@ -166,8 +189,14 @@ export default function CreateCouponPage() {
                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all" />
                         </div>
                         <div>
-                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Max Uses</label>
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Max Uses (Total)</label>
                             <input type="number" min="1" value={form.max_uses} onChange={e => set('max_uses', e.target.value)}
+                                placeholder="Unlimited"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all" />
+                        </div>
+                        <div>
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Max Uses Per User</label>
+                            <input type="number" min="1" value={form.max_uses_per_user} onChange={e => set('max_uses_per_user', e.target.value)}
                                 placeholder="Unlimited"
                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all" />
                         </div>
@@ -188,6 +217,59 @@ export default function CreateCouponPage() {
                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all" />
                         </div>
                     </div>
+                </div>
+
+                {/* Applicability */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-gray-400" /> Applies To
+                    </h2>
+                    <div className="flex gap-6">
+                        {APPLICABILITY.map(app => (
+                            <label key={app.value} className="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="applicable_to" value={app.value} checked={form.applicable_to === app.value} onChange={() => {
+                                    set('applicable_to', app.value);
+                                    if (app.value !== 'categories') set('applicable_ids', []);
+                                }} className="text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                <span className="text-sm font-medium text-gray-800">{app.label}</span>
+                            </label>
+                        ))}
+                    </div>
+                    
+                    {form.applicable_to === 'categories' && (
+                        <div className="pt-2">
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">Select Categories</label>
+                            
+                            <div className="flex flex-wrap gap-2 mb-3">
+                                {form.applicable_ids.length === 0 && <span className="text-sm text-gray-400">No categories selected.</span>}
+                                {form.applicable_ids.map(id => {
+                                    const cat = categories.find(c => c.id === id);
+                                    return (
+                                        <div key={id} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 border border-blue-100 shadow-sm">
+                                            {cat?.name || id}
+                                            <button type="button" onClick={() => set('applicable_ids', form.applicable_ids.filter(i => i !== id))} className="text-blue-400 hover:text-blue-600">&times;</button>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            
+                            <select
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all cursor-pointer"
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    if (val && !form.applicable_ids.includes(val)) {
+                                        set('applicable_ids', [...form.applicable_ids, val]);
+                                    }
+                                    e.target.value = "";
+                                }}
+                            >
+                                <option value="">+ Add category...</option>
+                                {categories.filter(c => !form.applicable_ids.includes(c.id)).map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {/* Active toggle */}
