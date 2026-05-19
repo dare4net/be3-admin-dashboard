@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import api from "@/lib/axios";
-import { Search, Filter, Loader2, RefreshCw } from "lucide-react";
+import { Search, Filter, Loader2, RefreshCw, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -112,15 +112,23 @@ export default function OrdersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
-                <button
-                    onClick={fetchOrders}
-                    className="p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
-                    title="Refresh Orders"
-                >
-                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                </button>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
+                    <p className="text-sm text-gray-400 mt-0.5">View and manage all store orders</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Link href="/dashboard/orders/create"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-sm">
+                        <Plus className="w-4 h-4" />
+                        Create Order
+                    </Link>
+                    <button onClick={fetchOrders}
+                        className="p-2.5 text-gray-500 hover:text-gray-900 rounded-xl hover:bg-gray-100 transition-colors border border-gray-200"
+                        title="Refresh Orders">
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}

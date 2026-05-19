@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/axios";
-import { ArrowLeft, Package, Truck, CreditCard, Mail, MapPin, User, Calendar, Save, RefreshCw, MessageSquare } from "lucide-react";
+import { ArrowLeft, Package, Truck, CreditCard, Mail, MapPin, User, Calendar, Save, RefreshCw, MessageSquare, Download, Send } from "lucide-react";
 
 // ── Status display helpers ────────────────────────────────────────────────────
 const ORDER_STATUS = {
@@ -138,28 +138,57 @@ export default function OrderDetailsPage() {
                 </div>
 
                 {/* Status Actions */}
-                <div className="flex items-center gap-3 bg-white p-2 rounded-lg shadow-none border border-gray-100">
-                    <span className="text-sm font-medium text-gray-700 pl-2">Status:</span>
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="border-none bg-transparent font-medium text-sm focus:ring-0 cursor-pointer"
-                    >
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="returned">Returned</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                    <button
-                        onClick={handleStatusUpdate}
-                        disabled={updating || status === order.status}
-                        className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                        {updating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save
-                    </button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="flex items-center gap-3 bg-white p-2 rounded-lg shadow-none border border-gray-100">
+                        <span className="text-sm font-medium text-gray-700 pl-2">Status:</span>
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                            className="border-none bg-transparent font-medium text-sm focus:ring-0 cursor-pointer"
+                        >
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="returned">Returned</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <button
+                            onClick={handleStatusUpdate}
+                            disabled={updating || status === order.status}
+                            className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            {updating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Save
+                        </button>
+                    </div>
+
+                    {/* Invoice Actions */}
+                    <div className="flex items-center gap-2">
+                        <a
+                            href={`${process.env.NEXT_PUBLIC_API_URL}/invoices/orders/${order.id}?tenantId=${order.tenant_id}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50 flex items-center gap-2 transition"
+                        >
+                            <Download className="w-4 h-4" />
+                            Invoice
+                        </a>
+                        <button
+                            onClick={async () => {
+                                const toastId = toast.loading('Sending invoice...');
+                                try {
+                                    await api.post(`/invoices/orders/${order.id}/send`);
+                                    toast.success('Invoice sent to customer', { id: toastId });
+                                } catch (e) {
+                                    toast.error('Failed to send invoice', { id: toastId });
+                                }
+                            }}
+                            className="bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50 flex items-center gap-2 transition"
+                        >
+                            <Send className="w-4 h-4" />
+                            Email
+                        </button>
+                    </div>
                 </div>
             </div>
 
