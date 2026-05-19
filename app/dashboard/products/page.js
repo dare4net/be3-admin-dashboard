@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/lib/axios";
-import { Plus, Edit, Trash2, Package, Search, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Package, Search, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ProductsPage() {
@@ -11,6 +11,9 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [viewMode, setViewMode] = useState("list");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 15;
 
     useEffect(() => {
         fetchProducts();
@@ -18,7 +21,8 @@ export default function ProductsPage() {
 
     const fetchProducts = async () => {
         try {
-            const res = await api.get("/products");
+            // Fetch more items to properly support client-side search/pagination
+            const res = await api.get("/products?per_page=500");
             setProducts(res.data.data || []);
         } catch (err) {
             console.error("Failed to fetch products", err);
@@ -44,6 +48,16 @@ export default function ProductsPage() {
         const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter]);
+
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    const paginatedProducts = filteredProducts.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     if (loading) {
         return (
@@ -98,76 +112,139 @@ export default function ProductsPage() {
                             {status}
                         </button>
                     ))}
+                    
+                    <div className="hidden md:flex bg-gray-50 border border-gray-100 rounded-lg p-1 ml-auto">
+                        <button
+                            onClick={() => setViewMode("list")}
+                            className={cn(
+                                "p-1.5 rounded-md transition-all",
+                                viewMode === "list" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                            )}
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode("grid")}
+                            className={cn(
+                                "p-1.5 rounded-md transition-all",
+                                viewMode === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                            )}
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Desktop View */}
-            <div className="hidden md:block bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-100">
-                    <thead className="bg-gray-50/50">
-                        <tr>
-                            <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Details</th>
-                            <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU</th>
-                            <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Pricing</th>
-                            <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                            <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {filteredProducts.map((product) => (
-                            <tr key={product.id} className="hover:bg-gray-50/30 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-lg border border-gray-100 bg-gray-50 flex-shrink-0 overflow-hidden">
-                                            {product.image_url ? (
-                                                <img src={product.image_url} alt="" className="w-full h-full object-cover" />
-                                            ) : <Package className="w-full h-full p-3 text-gray-200" />}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <div className="text-sm font-bold text-gray-900 truncate">{product.name}</div>
-                                            <div className="flex gap-1 mt-1">
-                                                {product.categories?.slice(0, 1).map((cat, i) => (
-                                                    <span key={i} className="text-[9px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                                                        {cat.name}
-                                                    </span>
-                                                ))}
+            <div className="hidden md:block">
+                {viewMode === "list" ? (
+                    <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-100">
+                            <thead className="bg-gray-50/50">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Details</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Pricing</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {paginatedProducts.map((product) => (
+                                    <tr key={product.id} className="hover:bg-gray-50/30 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 rounded-lg border border-gray-100 bg-gray-50 flex-shrink-0 overflow-hidden">
+                                                    {product.image_url ? (
+                                                        <img src={product.image_url} alt="" className="w-full h-full object-cover" />
+                                                    ) : <Package className="w-full h-full p-3 text-gray-200" />}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-bold text-gray-900 truncate">{product.name}</div>
+                                                    <div className="flex gap-1 mt-1">
+                                                        {product.categories?.slice(0, 1).map((cat, i) => (
+                                                            <span key={i} className="text-[9px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                                                                {cat.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-gray-400">
+                                            {product.sku || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-black text-gray-900">${parseFloat(product.price).toFixed(2)}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={cn(
+                                                "px-2.5 py-1 text-[9px] font-black uppercase tracking-widest border rounded-full",
+                                                product.status === 'active' ? "bg-green-50 text-green-700 border-green-100" : "bg-gray-50 text-gray-400 border-gray-100"
+                                            )}>
+                                                {product.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Link href={`/dashboard/products/${product.id}/edit`} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-100">
+                                                    <Edit className="w-4 h-4" />
+                                                </Link>
+                                                <button onClick={() => handleDelete(product.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all border border-transparent hover:border-red-100">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {paginatedProducts.map((product) => (
+                            <div key={product.id} className="bg-white rounded-lg border border-gray-100 shadow-none overflow-hidden hover:shadow-sm transition-shadow group flex flex-col">
+                                <div className="aspect-square bg-gray-50 relative">
+                                    {product.image_url ? (
+                                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    ) : (
+                                        <div className="flex items-center justify-center w-full h-full">
+                                            <Package className="w-12 h-12 text-gray-300" />
+                                        </div>
+                                    )}
+                                    <div className="absolute top-2 right-2">
+                                        <span className={cn(
+                                            "px-2 py-1 text-[8px] font-black uppercase tracking-widest border rounded backdrop-blur-md",
+                                            product.status === 'active' ? "bg-white/80 text-green-700 border-green-100" : "bg-white/80 text-gray-500 border-gray-100"
+                                        )}>
+                                            {product.status}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="p-4 flex-1 flex flex-col">
+                                    <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-1">{product.name}</h3>
+                                    <div className="flex items-center justify-between mt-auto pt-4">
+                                        <div className="font-black text-gray-900 text-lg">${parseFloat(product.price).toFixed(2)}</div>
+                                        <div className="flex gap-1">
+                                            <Link href={`/dashboard/products/${product.id}/edit`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all">
+                                                <Edit className="w-4 h-4" />
+                                            </Link>
+                                            <button onClick={() => handleDelete(product.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-gray-400">
-                                    {product.sku || '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-black text-gray-900">${parseFloat(product.price).toFixed(2)}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={cn(
-                                        "px-2.5 py-1 text-[9px] font-black uppercase tracking-widest border rounded-full",
-                                        product.status === 'active' ? "bg-green-50 text-green-700 border-green-100" : "bg-gray-50 text-gray-400 border-gray-100"
-                                    )}>
-                                        {product.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                    <div className="flex justify-end gap-1">
-                                        <Link href={`/dashboard/products/${product.id}/edit`} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-100">
-                                            <Edit className="w-4 h-4" />
-                                        </Link>
-                                        <button onClick={() => handleDelete(product.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all border border-transparent hover:border-red-100">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                                </div>
+                            </div>
                         ))}
-                    </tbody>
-                </table>
+                    </div>
+                )}
             </div>
 
             {/* Mobile View */}
             <div className="md:hidden space-y-3">
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                     <div key={product.id} className="bg-white p-4 rounded-lg border border-gray-100 shadow-none flex items-center gap-4">
                         <div className="w-16 h-16 rounded-lg border border-gray-100 bg-gray-50 flex-shrink-0 overflow-hidden">
                             {product.image_url ? (
@@ -200,6 +277,31 @@ export default function ProductsPage() {
                     </div>
                 ))}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-6">
+                    <p className="text-xs text-gray-400 font-medium">
+                        Showing <span className="text-gray-900 font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-gray-900 font-bold">{Math.min(currentPage * itemsPerPage, filteredProducts.length)}</span> of <span className="text-gray-900 font-bold">{filteredProducts.length}</span> entries
+                    </p>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {filteredProducts.length === 0 && (
                 <div className="bg-white rounded-lg border border-gray-100 border-dashed p-16 text-center">
