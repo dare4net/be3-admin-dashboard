@@ -202,13 +202,19 @@ export default function LogisticsTab() {
                 </div>
                 <form onSubmit={handleBaseSubmit} className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-2">
-                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Base Standard Fee ($)</label>
+                        <div className="space-y-2 relative">
+                            <div className="flex items-center justify-between">
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Base Standard Fee (₦)</label>
+                                {baseConfig.unconfigured && (
+                                    <span className="text-[9px] font-bold text-red-500 uppercase px-1.5 py-0.5 bg-red-50 rounded">Action Required - Unsaved</span>
+                                )}
+                            </div>
                             <input
+                                placeholder="1500"
                                 type="number" step="0.01" required
                                 value={baseConfig.base_fee}
                                 onChange={(e) => setBaseConfig({ ...baseConfig, base_fee: e.target.value })}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                className={cn("w-full px-4 py-3 bg-gray-50 border rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all", baseConfig.unconfigured ? "border-red-200 focus:ring-red-100" : "border-gray-100")}
                             />
                             <p className="text-[9px] font-medium text-gray-400 uppercase tracking-tighter">Your lowest universal delivery fee.</p>
                         </div>

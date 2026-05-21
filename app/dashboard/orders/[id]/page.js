@@ -8,21 +8,21 @@ import { ArrowLeft, Package, Truck, CreditCard, Mail, MapPin, User, Calendar, Sa
 
 // ── Status display helpers ────────────────────────────────────────────────────
 const ORDER_STATUS = {
-    pending:    { label: "Pending",    cls: "bg-amber-50 text-amber-700 ring-amber-200"    },
-    processing: { label: "Processing", cls: "bg-blue-50 text-blue-700 ring-blue-200"       },
-    shipped:    { label: "Shipped",    cls: "bg-indigo-50 text-indigo-700 ring-indigo-200"  },
-    delivered:  { label: "Delivered",  cls: "bg-green-50 text-green-700 ring-green-200"    },
-    returned:   { label: "Returned",   cls: "bg-orange-50 text-orange-700 ring-orange-200" },
-    cancelled:  { label: "Cancelled",  cls: "bg-red-50 text-red-700 ring-red-200"          },
+    pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 ring-amber-200" },
+    processing: { label: "Processing", cls: "bg-blue-50 text-blue-700 ring-blue-200" },
+    shipped: { label: "Shipped", cls: "bg-indigo-50 text-indigo-700 ring-indigo-200" },
+    delivered: { label: "Delivered", cls: "bg-green-50 text-green-700 ring-green-200" },
+    returned: { label: "Returned", cls: "bg-orange-50 text-orange-700 ring-orange-200" },
+    cancelled: { label: "Cancelled", cls: "bg-red-50 text-red-700 ring-red-200" },
 };
 
 const PAYMENT_STATUS = {
-    unpaid:     { label: "Unpaid",    cls: "bg-red-50 text-red-700 ring-red-200"          },
-    processing: { label: "Verifying", cls: "bg-amber-50 text-amber-700 ring-amber-200"    },
-    paid:       { label: "Paid",      cls: "bg-green-50 text-green-700 ring-green-200"    },
-    failed:     { label: "Failed",    cls: "bg-red-50 text-red-800 ring-red-200"          },
-    fulfilled:  { label: "Paid (DM)", cls: "bg-teal-50 text-teal-700 ring-teal-200"      },
-    refunded:   { label: "Refunded",  cls: "bg-orange-50 text-orange-700 ring-orange-200" },
+    unpaid: { label: "Unpaid", cls: "bg-red-50 text-red-700 ring-red-200" },
+    processing: { label: "Verifying", cls: "bg-amber-50 text-amber-700 ring-amber-200" },
+    paid: { label: "Paid", cls: "bg-green-50 text-green-700 ring-green-200" },
+    failed: { label: "Failed", cls: "bg-red-50 text-red-800 ring-red-200" },
+    fulfilled: { label: "Paid (DM)", cls: "bg-teal-50 text-teal-700 ring-teal-200" },
+    refunded: { label: "Refunded", cls: "bg-orange-50 text-orange-700 ring-orange-200" },
 };
 
 function OrderBadge({ status }) {
@@ -127,7 +127,7 @@ export default function OrderDetailsPage() {
                             Order {order.order_number}
                             <OrderBadge status={order.status} />
                             {order.checkout_type === 'whatsapp' && (
-                                <span className="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1"><svg viewBox="0 0 24 24" className="w-3 h-3 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.117 1.534 5.845L0 24l6.335-1.505A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.371l-.36-.214-3.727.886.936-3.618-.235-.372A9.818 9.818 0 1112 21.818z"/></svg> WhatsApp Order</span>
+                                <span className="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1"><svg viewBox="0 0 24 24" className="w-3 h-3 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.117 1.534 5.845L0 24l6.335-1.505A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.371l-.36-.214-3.727.886.936-3.618-.235-.372A9.818 9.818 0 1112 21.818z" /></svg> WhatsApp Order</span>
                             )}
                         </h1>
                         <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
@@ -219,7 +219,7 @@ export default function OrderDetailsPage() {
                                         </div>
                                     </div>
                                     <div className="text-right font-medium text-gray-900">
-                                    ₦{(item.quantity * item.price).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                                        ₦{(item.quantity * item.price).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                                     </div>
                                 </div>
                             ))}
@@ -229,6 +229,20 @@ export default function OrderDetailsPage() {
                                 <span>Subtotal</span>
                                 <span>₦{parseFloat(order.subtotal || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
                             </div>
+                            {(() => {
+                                const discount = parseFloat(order.discount_amount || 0);
+                                const sub = parseFloat(order.subtotal || 0);
+                                const tot = parseFloat(order.total || 0);
+                                const shipping = order.metadata?.shipping_fee !== undefined
+                                    ? parseFloat(order.metadata.shipping_fee)
+                                    : Math.max(0, (tot + discount) - sub);
+                                return shipping > 0 ? (
+                                    <div className="flex justify-between text-sm text-gray-600">
+                                        <span>Shipping</span>
+                                        <span>₦{shipping.toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+                                    </div>
+                                ) : null;
+                            })()}
                             {parseFloat(order.discount_amount || 0) > 0 && (
                                 <div className="flex justify-between text-sm text-green-600 font-medium">
                                     <span>Discount {order.coupon_code ? `(${order.coupon_code})` : ''}</span>
