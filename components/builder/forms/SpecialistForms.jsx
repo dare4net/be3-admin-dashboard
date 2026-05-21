@@ -177,14 +177,15 @@ export default function SpecialistForms({
 
                         <div className="grid grid-cols-2 gap-3">
                             {[
-                                { key: 'showPrice',        label: 'Price' },
-                                { key: 'showAddToCart',    label: 'Add to Cart' },
-                                { key: 'showFeaturedBadge',label: 'Featured Badge' },
-                                { key: 'showDescription',  label: 'Description' },
-                                { key: 'showTags',         label: 'Tags' },
-                                { key: 'showAttributes',   label: 'Attributes' },
-                                { key: 'showSocialProof',  label: 'Social Proof' },
-                                { key: 'showRating',       label: 'Rating ★' },
+                                { key: 'showPrice', label: 'Price' },
+                                { key: 'showAddToCart', label: 'Add to Cart' },
+                                { key: 'showFeaturedBadge', label: 'Featured Badge' },
+                                { key: 'showDeliveryBadge', label: 'Delivery Badges' },
+                                { key: 'showDescription', label: 'Description' },
+                                { key: 'showTags', label: 'Tags' },
+                                { key: 'showAttributes', label: 'Attributes' },
+                                { key: 'showSocialProof', label: 'Social Proof' },
+                                { key: 'showRating', label: 'Rating ★' },
                             ].map(({ key, label }) => (
                                 <div key={key} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
                                     <span className="text-sm font-medium text-gray-700">{label}</span>

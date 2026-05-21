@@ -11,6 +11,7 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [deliveryFilter, setDeliveryFilter] = useState("all");
     const [viewMode, setViewMode] = useState("list");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
@@ -46,12 +47,13 @@ export default function ProductsPage() {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
-        return matchesSearch && matchesStatus;
+        const matchesDelivery = deliveryFilter === 'all' || p.delivery_type === deliveryFilter;
+        return matchesSearch && matchesStatus && matchesDelivery;
     });
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, statusFilter]);
+    }, [searchTerm, statusFilter, deliveryFilter]);
 
     const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
     const paginatedProducts = filteredProducts.slice(
@@ -97,7 +99,20 @@ export default function ProductsPage() {
                         className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none"
                     />
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
+                <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 items-center">
+                    <select
+                        value={deliveryFilter}
+                        onChange={(e) => setDeliveryFilter(e.target.value)}
+                        className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border bg-white text-gray-600 border-gray-100 hover:border-gray-200 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
+                    >
+                        <option value="all">All Delivery</option>
+                        <option value="normal">Normal</option>
+                        <option value="express">Express ⚡</option>
+                        <option value="shipped_from_abroad">Abroad ✈️</option>
+                    </select>
+
+                    <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
+
                     {['all', 'active', 'draft', 'archived'].map(status => (
                         <button
                             key={status}
@@ -112,7 +127,7 @@ export default function ProductsPage() {
                             {status}
                         </button>
                     ))}
-                    
+
                     <div className="hidden md:flex bg-gray-50 border border-gray-100 rounded-lg p-1 ml-auto">
                         <button
                             onClick={() => setViewMode("list")}
@@ -146,6 +161,7 @@ export default function ProductsPage() {
                                     <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Details</th>
                                     <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU</th>
                                     <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Pricing</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Delivery</th>
                                     <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                                     <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                                 </tr>
@@ -177,6 +193,11 @@ export default function ProductsPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-black text-gray-900">${parseFloat(product.price).toFixed(2)}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {product.delivery_type === 'express' && <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#ff4e00] bg-[#ff4e00]/10 px-2 py-0.5 rounded border border-[#ff4e00]/20">Express ⚡</span>}
+                                            {product.delivery_type === 'shipped_from_abroad' && <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">Abroad ✈️</span>}
+                                            {(!product.delivery_type || product.delivery_type === 'normal') && <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">Normal</span>}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={cn(

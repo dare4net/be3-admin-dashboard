@@ -174,6 +174,7 @@ export default function ProductForms({
                         { key: 'showAddToCart', label: 'Show "Add to Cart"' },
                         { key: 'showViewDetails', label: 'Show "View Details"' },
                         { key: 'showFeaturedBadge', label: 'Show "Featured" Badge' },
+                        { key: 'showDeliveryBadge', label: 'Show Delivery Badges (e.g. Express)' },
                         { key: 'showVendor', label: 'Show Vendor' },
                         { key: 'showTags', label: 'Show Tags', countKey: 'tagsCount' },
                         { key: 'showDescription', label: 'Show Description' },
@@ -185,7 +186,7 @@ export default function ProductForms({
                         const responsiveValue = config.responsiveDisplay?.[selectedDevice]?.[item.key];
                         const isOverridden = !isDesktop && responsiveValue !== undefined;
                         const valueSource = isOverridden ? responsiveValue : config[item.key];
-                        
+
                         // Default logic: missing means TRUE (ON) unless otherwise specified
                         const value = valueSource === undefined ? true : !!valueSource;
 

@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import { Save, Loader2, Store, LayoutTemplate, Shield, Users, Settings as SettingsIcon } from "lucide-react";
+import { Save, Loader2, Store, LayoutTemplate, Shield, Users, Settings as SettingsIcon, MapPin, Globe } from "lucide-react";
 import Link from 'next/link';
 import RolesTab from "./RolesTab";
 import UsersTab from "./UsersTab";
+import MasterTopologyTab from "./MasterTopologyTab";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -125,6 +126,7 @@ export default function SettingsPage() {
         { id: "store", label: "Store Identity", icon: Store },
         { id: "roles", label: "Security Roles", icon: Shield },
         { id: "users", label: "Staff & Access", icon: Users },
+        { id: "topology", label: "Master Topology", icon: Globe },
         { id: "profile", label: "My Profile", icon: SettingsIcon },
     ];
 
@@ -229,6 +231,7 @@ export default function SettingsPage() {
 
                 {activeTab === "roles" && <RolesTab />}
                 {activeTab === "users" && <UsersTab />}
+                {activeTab === "topology" && <MasterTopologyTab />}
 
                 {activeTab === "profile" && (
                     <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">

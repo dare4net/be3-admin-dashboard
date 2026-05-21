@@ -32,7 +32,8 @@ export default function EditProductPage() {
         attributes: true,
         seo: false,
         tags: false,
-        whats_included: false
+        whats_included: false,
+        shipping: false
     });
 
     const [formData, setFormData] = useState({
@@ -44,7 +45,10 @@ export default function EditProductPage() {
         twitter_title: "", twitter_description: "", twitter_image: "",
         canonical_url: "", robots: "index,follow", structured_data: null,
         parent_id: null, is_variant: false, variant_label: "",
-        whats_included: []
+        whats_included: [], delivery_type: "normal",
+        shipping_base_fee_override: "", disable_shipping_multiplier: false,
+        processing_min_override: "", processing_max_override: "",
+        transit_min_override: "", transit_max_override: ""
     });
     const [tagInput, setTagInput] = useState("");
     const [whatsIncludedInput, setWhatsIncludedInput] = useState("");
@@ -82,7 +86,14 @@ export default function EditProductPage() {
                     twitter_image: product.twitter_image || "", canonical_url: product.canonical_url || "",
                     robots: product.robots || "index,follow", structured_data: product.structured_data || null,
                     parent_id: product.parent_id, is_variant: product.is_variant, variant_label: product.variant_label || "",
-                    whats_included: product.whats_included || []
+                    whats_included: product.whats_included || [],
+                    delivery_type: product.delivery_type || "normal",
+                    shipping_base_fee_override: product.shipping_base_fee_override || "",
+                    disable_shipping_multiplier: !!product.disable_shipping_multiplier,
+                    processing_min_override: product.processing_min_override || "",
+                    processing_max_override: product.processing_max_override || "",
+                    transit_min_override: product.transit_min_override || "",
+                    transit_max_override: product.transit_max_override || ""
                 });
 
                 if (primaryCatId && catRes.data.categories) {
@@ -382,7 +393,7 @@ export default function EditProductPage() {
                                         </label>
                                     </div>
                                     <div className="col-span-1 md:col-span-2">
-                                        <PremiumImageUpload 
+                                        <PremiumImageUpload
                                             label="Product Digital Asset"
                                             value={formData.image_url}
                                             onChange={(url) => setFormData({ ...formData, image_url: url })}
@@ -584,6 +595,88 @@ export default function EditProductPage() {
                                             <p className="text-[9px] font-black uppercase tracking-widest">No items defined</p>
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Shipping & Logistics Section */}
+                    <div className="bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden">
+                        <button type="button" onClick={() => toggleSection('shipping')} className="w-full flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors text-left">
+                            <div className="flex items-center gap-3">
+                                <Globe className="w-5 h-5 text-purple-600 hidden" />
+                                <h2 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em]">Shipping Constraints</h2>
+                            </div>
+                            {expandedSections.shipping ? <ChevronUp className="w-4 h-4 text-gray-300" /> : <ChevronDown className="w-4 h-4 text-gray-300" />}
+                        </button>
+                        {expandedSections.shipping && (
+                            <div className="p-6 pt-0 space-y-6 border-t border-gray-50 pt-6">
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Delivery Type</label>
+                                    <select className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-[11px] font-black focus:ring-4 focus:ring-purple-100 outline-none transition-all cursor-pointer"
+                                        value={formData.delivery_type} onChange={(e) => setFormData({ ...formData, delivery_type: e.target.value })}>
+                                        <option value="normal">Standard Delivery</option>
+                                        <option value="express">Express Delivery (Platform Specific)</option>
+                                        <option value="shipped_from_abroad">Shipped from Abroad</option>
+                                    </select>
+                                </div>
+
+                                {(formData.shipping_base_fee_override || formData.disable_shipping_multiplier || formData.processing_min_override || formData.transit_min_override) && (
+                                    <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl">
+                                        <p className="text-[10px] font-black text-orange-800 uppercase tracking-widest flex items-center gap-2">⚠️ Override Active</p>
+                                        <p className="text-[11px] text-orange-600 mt-1 font-medium">You have overridden your global checkout settings for this specific product.</p>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Base Fee Override ($)</label>
+                                        <input type="number" step="0.01" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-purple-100 outline-none transition-all placeholder:text-gray-300"
+                                            placeholder="Leave empty for global value" value={formData.shipping_base_fee_override} onChange={(e) => setFormData({ ...formData, shipping_base_fee_override: e.target.value })} />
+                                    </div>
+                                    <div className="flex items-center px-2 pt-6">
+                                        <label className="flex items-center cursor-pointer select-none gap-3">
+                                            <div className="relative">
+                                                <input type="checkbox" className="sr-only peer"
+                                                    checked={formData.disable_shipping_multiplier} onChange={(e) => setFormData({ ...formData, disable_shipping_multiplier: e.target.checked })} />
+                                                <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                            </div>
+                                            <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Disable Zonal Multipliers</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-50/50">
+                                    <div className="space-y-4">
+                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em]">Processing Days</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Min</label>
+                                                <input type="number" className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none placeholder:text-gray-300"
+                                                    placeholder="Auto" value={formData.processing_min_override} onChange={(e) => setFormData({ ...formData, processing_min_override: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Max</label>
+                                                <input type="number" className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none placeholder:text-gray-300"
+                                                    placeholder="Auto" value={formData.processing_max_override} onChange={(e) => setFormData({ ...formData, processing_max_override: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em]">Transit Days</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Min</label>
+                                                <input type="number" className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none placeholder:text-gray-300"
+                                                    placeholder="Auto" value={formData.transit_min_override} onChange={(e) => setFormData({ ...formData, transit_min_override: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Max</label>
+                                                <input type="number" className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none placeholder:text-gray-300"
+                                                    placeholder="Auto" value={formData.transit_max_override} onChange={(e) => setFormData({ ...formData, transit_max_override: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
