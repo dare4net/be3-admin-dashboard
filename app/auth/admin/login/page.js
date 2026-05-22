@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthContext";
 import api from "@/lib/axios";
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Mail, Lock, Globe, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
     const { login, setGlobalLoading } = useAuth();
-    const [formData, setFormData] = useState({ email: "", password: "" });
+    const [formData, setFormData] = useState({ email: "", password: "", subdomain: "" });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -19,9 +19,19 @@ export default function LoginPage() {
         setError("");
 
         try {
-            const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
-            if (tenantId) {
-                localStorage.setItem('temp_tenant_id', tenantId);
+            if (!formData.subdomain) {
+                throw new Error("Please enter your store subdomain");
+            }
+
+            let tenantId = null;
+            try {
+                const lookupRes = await api.get(`/tenants/lookup?subdomain=${formData.subdomain}`);
+                if (lookupRes.data.success) {
+                    tenantId = lookupRes.data.tenant.id;
+                    localStorage.setItem('temp_tenant_id', tenantId);
+                }
+            } catch (lookupErr) {
+                throw new Error("Store not found with that subdomain");
             }
 
             const res = await api.post("/auth/login", {
@@ -72,6 +82,28 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                        Subdomain
+                    </label>
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-600 transition-colors">
+                            <Globe size={16} />
+                        </div>
+                        <input
+                            type="text"
+                            required
+                            className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all placeholder:text-gray-300"
+                            placeholder="my-store"
+                            value={formData.subdomain}
+                            onChange={(e) => setFormData({ ...formData, subdomain: e.target.value })}
+                        />
+                        <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none">
+                            <span className="text-[10px] font-bold text-gray-300">.be3.com</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
                         Email
@@ -132,6 +164,16 @@ export default function LoginPage() {
                         </>
                     )}
                 </button>
-            </form>        </div>
+            </form>
+
+            <div className="mt-6 pt-5 border-t border-gray-50 text-center">
+                <p className="text-gray-500 text-[11px] font-medium">
+                    New store?{" "}
+                    <Link href="/auth/register" className="text-blue-600 font-bold hover:text-blue-700 transition-colors">
+                        Launch now
+                    </Link>
+                </p>
+            </div>
+        </div>
     );
 }
