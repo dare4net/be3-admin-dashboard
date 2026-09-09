@@ -12,10 +12,10 @@ import api from "@/lib/axios";
 import toast from "react-hot-toast";
 
 const PAYMENT_METHODS = [
-    { value: 'manual',        label: 'Manual / Other' },
-    { value: 'cash',          label: 'Cash' },
+    { value: 'manual', label: 'Manual / Other' },
+    { value: 'cash', label: 'Cash' },
     { value: 'bank_transfer', label: 'Bank Transfer' },
-    { value: 'pos',           label: 'POS Terminal' },
+    { value: 'pos', label: 'POS Terminal' },
 ];
 
 function ProductBrowser({ onAdd }) {
@@ -74,23 +74,23 @@ function ProductBrowser({ onAdd }) {
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    <input 
-                        type="text" 
-                        value={q} 
+                    <input
+                        type="text"
+                        value={q}
                         onChange={e => setQ(e.target.value)}
                         placeholder="Search products..."
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all" 
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
                     />
                 </div>
                 <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg self-start sm:self-auto">
-                    <button 
+                    <button
                         type="button"
                         onClick={() => setViewMode('grid')}
                         className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <LayoutGrid className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                         type="button"
                         onClick={() => setViewMode('list')}
                         className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
@@ -152,7 +152,7 @@ function ProductBrowser({ onAdd }) {
                                 ))}
                             </div>
                         )}
-                        
+
                         {/* Pagination */}
                         {totalPages > 1 && (
                             <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200/60">
@@ -160,16 +160,16 @@ function ProductBrowser({ onAdd }) {
                                     Showing <span className="font-semibold text-gray-700">{(page - 1) * 12 + 1} - {Math.min(page * 12, totalItems)}</span> of <span className="font-semibold text-gray-700">{totalItems}</span>
                                 </span>
                                 <div className="flex gap-2">
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setPage(p => Math.max(1, p - 1))}
                                         disabled={page === 1 || loading}
                                         className="flex items-center justify-center min-w-[70px] px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                     >
                                         {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Prev'}
                                     </button>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                         disabled={page === totalPages || loading}
                                         className="flex items-center justify-center min-w-[70px] px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -237,6 +237,9 @@ export default function CreateOrderPage() {
 
         setLoading(true);
         try {
+            const isWaTools = sessionStorage.getItem("wa_tools_origin") === "true";
+            console.log('[Orders Page] wa_tools_origin:', sessionStorage.getItem("wa_tools_origin"), 'isWaTools:', isWaTools);
+
             const res = await api.post('/orders', {
                 customer_name: customer.name,
                 customer_email: customer.email,
@@ -247,6 +250,7 @@ export default function CreateOrderPage() {
                 shipping_address,
                 notes,
                 discount_amount: discountAmt,
+                ...(isWaTools && { metadata: { source: 'wa_tools' } })
             });
 
             if (res.data.success) {
@@ -333,7 +337,7 @@ export default function CreateOrderPage() {
                         <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
                             Selected Items
                         </h2>
-                        
+
                         {items.length === 0 ? (
                             <div className="text-center py-6 text-sm text-gray-400">
                                 No items selected yet
