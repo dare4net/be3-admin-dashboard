@@ -7,6 +7,7 @@ import Link from 'next/link';
 import RolesTab from "./RolesTab";
 import UsersTab from "./UsersTab";
 import MasterTopologyTab from "./MasterTopologyTab";
+import DomainTab from "./DomainTab";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -124,6 +125,7 @@ export default function SettingsPage() {
 
     const tabs = [
         { id: "store", label: "Store Identity", icon: Store },
+        { id: "domain", label: "Domain & DNS", icon: Globe },
         { id: "roles", label: "Security Roles", icon: Shield },
         { id: "users", label: "Staff & Access", icon: Users },
         { id: "topology", label: "Master Topology", icon: Globe },
@@ -227,6 +229,10 @@ export default function SettingsPage() {
                             </div>
                         </form>
                     </div>
+                )}
+
+                {activeTab === "domain" && (
+                    <DomainTab tenant={tenant} onUpdateTenant={(updatedTenant) => setTenant(updatedTenant)} />
                 )}
 
                 {activeTab === "roles" && <RolesTab />}
