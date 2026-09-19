@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Shuffle, Maximize, Sparkles, RotateCcw, X } from "lucide-react";
+import { Shuffle, Maximize, Sparkles, RotateCcw, X, ShoppingCart } from "lucide-react";
 import ColorPicker from "@/components/config/ColorPicker";
 import { Input, Select, CollapsibleSection, RandomizationConfig, ToggleButton, DeviceToggle } from "./FormComponents";
 
@@ -275,6 +275,105 @@ export default function ProductForms({
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span className="text-sm font-medium text-gray-700">Enable Entry Animation</span>
                     <ToggleButton value={config.enableEntryAnimation || false} onChange={v => updateConfig('enableEntryAnimation', v)} />
+                </div>
+            </CollapsibleSection>
+
+            {/* Cart Button Customization */}
+            <CollapsibleSection
+                title="Cart Button & Actions"
+                icon={<ShoppingCart size={18} />}
+                isOpen={openSections.cartButton ?? true}
+                onToggle={() => toggleSection('cartButton')}
+            >
+                <div className="space-y-4">
+                    <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between">
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-blue-900">Show "Add to Cart" Button</span>
+                            <span className="text-[11px] text-blue-700">Display instant cart purchase button on product cards</span>
+                        </div>
+                        <ToggleButton
+                            value={config.showAddToCart !== false}
+                            onChange={v => updateConfig('showAddToCart', v)}
+                        />
+                    </div>
+
+                    {config.showAddToCart !== false && (
+                        <div className="space-y-4 pt-1">
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Button Text"
+                                    value={config.cartButtonText ?? (isCarousel ? '' : 'Add')}
+                                    onChange={v => updateConfig('cartButtonText', v)}
+                                    placeholder="e.g. Add, Buy, Add to Cart (or leave empty)"
+                                />
+                                <Select
+                                    label="Button Icon"
+                                    value={config.cartButtonIcon || 'cart'}
+                                    onChange={v => updateConfig('cartButtonIcon', v)}
+                                    options={[
+                                        { value: 'cart', label: '🛒 Shopping Cart' },
+                                        { value: 'bag', label: '🛍️ Shopping Bag' },
+                                        { value: 'plus', label: '➕ Plus (+)' },
+                                        { value: 'none', label: '🚫 No Icon (Text Only)' }
+                                    ]}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <Select
+                                    label="Button Variant"
+                                    value={config.cartButtonVariant || (isCarousel ? 'soft' : 'solid')}
+                                    onChange={v => updateConfig('cartButtonVariant', v)}
+                                    options={[
+                                        { value: 'solid', label: 'Solid Primary Fill' },
+                                        { value: 'soft', label: 'Soft Accent Tint' },
+                                        { value: 'outline', label: 'Outline / Border' },
+                                        { value: 'full_width', label: 'Full-Width Bottom Bar' }
+                                    ]}
+                                />
+                                <Select
+                                    label="Corner Shape"
+                                    value={config.cartButtonShape || 'theme'}
+                                    onChange={v => updateConfig('cartButtonShape', v)}
+                                    options={[
+                                        { value: 'theme', label: 'Inherit Theme Radius' },
+                                        { value: 'pill', label: 'Full Pill (9999px)' },
+                                        { value: 'rounded', label: 'Rounded (8px)' },
+                                        { value: 'sharp', label: 'Sharp Corners (0px)' }
+                                    ]}
+                                />
+                            </div>
+
+                            {/* Custom Color Overrides */}
+                            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-semibold text-gray-900">Custom Button Colors</span>
+                                        <span className="text-[10px] text-gray-500">Override theme brand colors for this widget</span>
+                                    </div>
+                                    <ToggleButton
+                                        value={config.cartButtonCustomColors || false}
+                                        onChange={v => updateConfig('cartButtonCustomColors', v)}
+                                    />
+                                </div>
+
+                                {config.cartButtonCustomColors && (
+                                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200">
+                                        <ColorPicker
+                                            label="Button Background / Border"
+                                            value={config.cartButtonBg || '#2563eb'}
+                                            onChange={v => updateConfig('cartButtonBg', v)}
+                                        />
+                                        <ColorPicker
+                                            label="Text & Icon Color"
+                                            value={config.cartButtonTextCol || '#ffffff'}
+                                            onChange={v => updateConfig('cartButtonTextCol', v)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </CollapsibleSection>
 
