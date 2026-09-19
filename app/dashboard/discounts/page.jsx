@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const TYPE_META = {
     percentage:   { label: "% Off",         icon: Percent,    color: "text-blue-600",   bg: "bg-blue-50"  },
@@ -17,6 +18,7 @@ const TYPE_META = {
 };
 
 function CouponViewModal({ coupon, onClose }) {
+    const { formatPrice } = useCurrency();
     if (!coupon) return null;
     const type = TYPE_META[coupon.type] || TYPE_META.percentage;
     const Icon = type.icon;
@@ -72,7 +74,7 @@ function CouponViewModal({ coupon, onClose }) {
                             <p className="text-sm font-bold text-gray-900">
                                 {coupon.type === 'percentage' ? `${coupon.value}%` :
                                  coupon.type === 'free_shipping' ? 'Free Shipping' :
-                                 `₦${Number(coupon.value).toLocaleString()}`}
+                                 formatPrice(coupon.value)}
                             </p>
                         </div>
                         <div className="space-y-1 col-span-2">
@@ -114,7 +116,7 @@ function CouponViewModal({ coupon, onClose }) {
                         </div>
                         <div className="space-y-1">
                             <p className="text-xs font-semibold text-gray-500 uppercase">Min Order Value</p>
-                            <p className="text-sm font-bold text-gray-900">{coupon.min_order_value > 0 ? `₦${Number(coupon.min_order_value).toLocaleString()}` : 'None'}</p>
+                            <p className="text-sm font-bold text-gray-900">{coupon.min_order_value > 0 ? formatPrice(coupon.min_order_value) : 'None'}</p>
                         </div>
                         <div className="space-y-1">
                             <p className="text-xs font-semibold text-gray-500 uppercase">Start Date</p>
@@ -142,6 +144,7 @@ function CouponViewModal({ coupon, onClose }) {
 }
 
 function CouponCard({ coupon, onToggle, onDelete, onView }) {
+    const { formatPrice } = useCurrency();
     const type = TYPE_META[coupon.type] || TYPE_META.percentage;
     const Icon = type.icon;
     const now = new Date();
@@ -179,7 +182,7 @@ function CouponCard({ coupon, onToggle, onDelete, onView }) {
                 <p className="text-2xl font-black text-gray-900">
                     {coupon.type === 'percentage' ? `${coupon.value}%` :
                      coupon.type === 'free_shipping' ? 'Free Ship' :
-                     `₦${Number(coupon.value).toLocaleString()}`}
+                     formatPrice(coupon.value)}
                 </p>
                 {coupon.description && <p className="text-xs text-gray-400 mt-0.5">{coupon.description}</p>}
             </div>
@@ -192,7 +195,7 @@ function CouponCard({ coupon, onToggle, onDelete, onView }) {
                 </div>
                 <div className="text-center bg-gray-50 rounded-xl p-2">
                     <p className="text-xs text-gray-400">Min Order</p>
-                    <p className="text-sm font-bold text-gray-800">{coupon.min_order_value > 0 ? `₦${Number(coupon.min_order_value).toLocaleString()}` : 'None'}</p>
+                    <p className="text-sm font-bold text-gray-800">{coupon.min_order_value > 0 ? formatPrice(coupon.min_order_value) : 'None'}</p>
                 </div>
                 <div className="text-center bg-gray-50 rounded-xl p-2">
                     <p className="text-xs text-gray-400">Expires</p>

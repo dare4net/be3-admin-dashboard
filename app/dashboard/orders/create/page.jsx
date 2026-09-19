@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const PAYMENT_METHODS = [
     { value: 'manual', label: 'Manual / Other' },
@@ -19,6 +20,7 @@ const PAYMENT_METHODS = [
 ];
 
 function ProductBrowser({ onAdd }) {
+    const { formatPrice } = useCurrency();
     const [q, setQ] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [results, setResults] = useState([]);
@@ -129,7 +131,7 @@ function ProductBrowser({ onAdd }) {
                                         </div>
                                         <div className="p-3">
                                             <p className="text-sm font-semibold text-gray-800 line-clamp-2 leading-tight mb-1">{p.name}</p>
-                                            <p className="text-sm font-black text-blue-600">₦{Number(p.price || 0).toLocaleString()}</p>
+                                            <p className="text-sm font-black text-blue-600">{formatPrice(p.price || 0)}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -143,7 +145,7 @@ function ProductBrowser({ onAdd }) {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
-                                            <p className="text-sm font-black text-blue-600">₦{Number(p.price || 0).toLocaleString()}</p>
+                                            <p className="text-sm font-black text-blue-600">{formatPrice(p.price || 0)}</p>
                                         </div>
                                         <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors text-gray-400">
                                             <Plus className="w-4 h-4" />
@@ -188,6 +190,7 @@ function ProductBrowser({ onAdd }) {
 
 export default function CreateOrderPage() {
     const router = useRouter();
+    const { formatPrice, currencySymbol } = useCurrency();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [items, setItems] = useState([]);
@@ -360,7 +363,7 @@ export default function CreateOrderPage() {
                                             <div className="flex items-center justify-between border-t border-gray-200/60 pt-2">
                                                 {/* Price override */}
                                                 <div className="flex items-center gap-1">
-                                                    <span className="text-xs text-gray-400">₦</span>
+                                                    <span className="text-xs text-gray-400">{currencySymbol}</span>
                                                     <input type="number" min="0" step="any" value={item.price}
                                                         onChange={e => updatePrice(item.product_id, e.target.value)}
                                                         className="w-20 px-2 py-1 border border-gray-200 rounded-lg text-xs text-right bg-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
@@ -381,15 +384,15 @@ export default function CreateOrderPage() {
                                 {/* Totals */}
                                 <div className="border-t border-gray-200 pt-4 space-y-2">
                                     <div className="flex justify-between text-sm text-gray-500">
-                                        <span>Subtotal</span><span>₦{subtotal.toLocaleString()}</span>
+                                        <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
                                     </div>
                                     {discountAmt > 0 && (
                                         <div className="flex justify-between text-sm text-green-600">
-                                            <span>Discount</span><span>− ₦{discountAmt.toLocaleString()}</span>
+                                            <span>Discount</span><span>− {formatPrice(discountAmt)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-lg font-black text-gray-900 pt-2 border-t border-gray-100">
-                                        <span>Total</span><span>₦{total.toLocaleString()}</span>
+                                        <span>Total</span><span>{formatPrice(total)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -418,7 +421,7 @@ export default function CreateOrderPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-gray-600 block mb-1.5">Discount Amount (₦)</label>
+                                <label className="text-xs font-semibold text-gray-600 block mb-1.5">Discount Amount ({currencySymbol})</label>
                                 <input type="number" min="0" value={discount_amount} onChange={e => setDiscountAmount(e.target.value)}
                                     placeholder="0"
                                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all" />

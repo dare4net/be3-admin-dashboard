@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ImageUploader from '@/components/config/ImageUploader';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const OPERATORS = {
     category: [{ label: 'Is In', value: 'in' }],
@@ -19,6 +20,7 @@ const OPERATORS = {
 };
 
 export default function CollectionsPage() {
+    const { formatPrice } = useCurrency();
     const [collections, setCollections] = useState([]);
     const [categories, setCategories] = useState([]);
     const [attributes, setAttributes] = useState([]);
@@ -298,7 +300,7 @@ export default function CollectionsPage() {
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-sm text-gray-900 truncate">{product.title}</p>
                                             <p className="text-[10px] font-mono font-black text-gray-400 uppercase mt-0.5 tracking-tighter">SKU: {product.metadata?.sku || 'NULL'}</p>
-                                            <p className="text-xs font-black text-blue-600 mt-1">${parseFloat(product.metadata?.price || 0).toFixed(2)}</p>
+                                            <p className="text-xs font-black text-blue-600 mt-1">{formatPrice(product.metadata?.price || 0)}</p>
                                         </div>
                                     </div>
                                 ))}

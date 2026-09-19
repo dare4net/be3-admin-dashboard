@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/axios";
 import { ArrowLeft, Mail, Calendar, Package, Clock, DollarSign, Loader2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, AlertTriangle, Video, FileText } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 // ─── Label maps ───────────────────────────────────────────────────────────────
 const POI_LABELS = { NIN_SLIP: "NIN Slip", NATIONAL_ID: "National ID Card", PASSPORT: "International Passport", DRIVERS_LICENSE: "Driver's Licence", PVC: "Voter's Card (PVC)" };
@@ -181,6 +182,7 @@ function KybPanel({ userId, status, cacUrl, reviewedAt, rejectionReason, onUpdat
 export default function CustomerDetailsPage() {
     const { id } = useParams();
     const router = useRouter();
+    const { formatPrice } = useCurrency();
 
     const [user, setUser] = useState(null);
     const [orders, setOrders] = useState([]);
@@ -486,7 +488,7 @@ export default function CustomerDetailsPage() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right font-medium">
-                                                    ${parseFloat(order.total).toFixed(2)}
+                                                    {formatPrice(order.total)}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <Link

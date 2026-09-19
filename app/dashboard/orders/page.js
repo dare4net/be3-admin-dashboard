@@ -5,6 +5,7 @@ import Link from "next/link";
 import api from "@/lib/axios";
 import { Search, Filter, Loader2, RefreshCw, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useCurrency } from "@/hooks/useCurrency";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const ORDER_STATUS = {
@@ -37,6 +38,7 @@ function PaymentBadge({ status }) {
 
 export default function OrdersPage() {
     const router = useRouter();
+    const { formatPrice } = useCurrency();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [pagination, setPagination] = useState({
@@ -209,7 +211,7 @@ export default function OrdersPage() {
                                             <div className="font-medium text-gray-900">{order.customer_email || 'Guest'}</div>
                                             {order.user_id && <div className="text-xs text-gray-500">Registered</div>}
                                         </td>
-                                        <td className="px-6 py-4 font-semibold">₦{parseFloat(order.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                                        <td className="px-6 py-4 font-semibold">{formatPrice(order.total)}</td>
                                         <td className="px-6 py-4"><OrderBadge status={order.status} /></td>
                                         <td className="px-6 py-4"><PaymentBadge status={order.payment_status} /></td>
                                         <td className="px-6 py-4 text-right">
@@ -265,7 +267,7 @@ export default function OrdersPage() {
                                     <p className="text-sm font-medium text-gray-900">{order.customer_email || 'Guest'}</p>
                                     {order.user_id && <p className="text-[10px] text-gray-400 uppercase font-bold">Member</p>}
                                 </div>
-                                <p className="text-lg font-black text-gray-900">₦{parseFloat(order.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</p>
+                                <p className="text-lg font-black text-gray-900">{formatPrice(order.total)}</p>
                             </div>
                         </div>
                     ))

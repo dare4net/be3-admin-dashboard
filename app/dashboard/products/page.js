@@ -5,9 +5,11 @@ import Link from "next/link";
 import api from "@/lib/axios";
 import { Plus, Edit, Trash2, Package, Search, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export default function ProductsPage() {
     const [products, setProducts] = useState([]);
+    const { formatPrice } = useCurrency();
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -192,7 +194,7 @@ export default function ProductsPage() {
                                             {product.sku || '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-black text-gray-900">${parseFloat(product.price).toFixed(2)}</div>
+                                            <div className="text-sm font-black text-gray-900">{formatPrice(parseFloat(product.price))}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {product.delivery_type === 'express' && <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#ff4e00] bg-[#ff4e00]/10 px-2 py-0.5 rounded border border-[#ff4e00]/20">Express ⚡</span>}
@@ -246,7 +248,7 @@ export default function ProductsPage() {
                                 <div className="p-4 flex-1 flex flex-col">
                                     <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-1">{product.name}</h3>
                                     <div className="flex items-center justify-between mt-auto pt-4">
-                                        <div className="font-black text-gray-900 text-lg">${parseFloat(product.price).toFixed(2)}</div>
+                                        <div className="font-black text-gray-900 text-lg">{formatPrice(parseFloat(product.price))}</div>
                                         <div className="flex gap-1">
                                             <Link href={`/dashboard/products/${product.id}/edit`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all">
                                                 <Edit className="w-4 h-4" />
@@ -275,7 +277,7 @@ export default function ProductsPage() {
                         <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
                                 <h3 className="text-[13px] font-bold text-gray-900 truncate">{product.name}</h3>
-                                <span className="text-[14px] font-black text-gray-900">${parseFloat(product.price).toFixed(2)}</span>
+                                <span className="text-[14px] font-black text-gray-900">{formatPrice(parseFloat(product.price))}</span>
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                                 <p className="text-[10px] font-mono text-gray-400 uppercase tracking-tighter truncate">{product.sku || 'No SKU'}</p>

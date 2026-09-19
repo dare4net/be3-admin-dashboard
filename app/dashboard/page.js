@@ -6,9 +6,11 @@ import api from "@/lib/axios";
 import { Package, ShoppingCart, DollarSign, TrendingUp, Clock, RefreshCw, ArrowRight, User } from "lucide-react";
 import Link from "next/link";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useCurrency } from "@/hooks/useCurrency";
 
 export default function DashboardPage() {
     const { user, setGlobalLoading } = useAuth();
+    const { formatPrice } = useCurrency();
     const [stats, setStats] = useState({
         products: 0,
         orders: 0,
@@ -165,7 +167,7 @@ export default function DashboardPage() {
     const statCards = [
         {
             name: "Total Revenue",
-            value: `$${stats.revenue.toFixed(2)}`,
+            value: formatPrice(stats.revenue),
             trend: stats.trends?.revenue,
             icon: DollarSign,
             text: "text-purple-600",
@@ -181,7 +183,7 @@ export default function DashboardPage() {
         },
         {
             name: "Avg Order Value",
-            value: `$${stats.aov.toFixed(2)}`,
+            value: formatPrice(stats.aov),
             trend: stats.trends?.aov,
             icon: DollarSign,
             text: "text-emerald-600",
@@ -437,7 +439,7 @@ export default function DashboardPage() {
                                             {new Date(order.created_at).toLocaleDateString()}
                                         </td>
                                         <td className="py-4 text-sm font-bold text-gray-900">
-                                            ${parseFloat(order.total).toFixed(2)}
+                                            {formatPrice(parseFloat(order.total))}
                                         </td>
                                         <td className="py-4">
                                             <span className={cn(
