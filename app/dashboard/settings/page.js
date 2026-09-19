@@ -10,6 +10,8 @@ import MasterTopologyTab from "./MasterTopologyTab";
 import DomainTab from "./DomainTab";
 import { cn } from "@/lib/utils";
 
+import { CURRENCY_OPTIONS, getCurrencySymbol } from "@/lib/currency";
+
 export default function SettingsPage() {
     const [tenant, setTenant] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -17,7 +19,9 @@ export default function SettingsPage() {
     const [formData, setFormData] = useState({
         name: "",
         subdomain: "",
-        font_family: "Inter"
+        font_family: "Inter",
+        currency: "USD",
+        currency_symbol: "$",
     });
     const [activeTab, setActiveTab] = useState("store");
     const [user, setUser] = useState(null);
@@ -40,11 +44,14 @@ export default function SettingsPage() {
             ]);
 
             if (tenantRes.data.success) {
-                setTenant(tenantRes.data.tenant);
+                const t = tenantRes.data.tenant;
+                setTenant(t);
                 setFormData({
-                    name: tenantRes.data.tenant.name,
-                    subdomain: tenantRes.data.tenant.subdomain,
-                    font_family: tenantRes.data.tenant.settings?.font_family || 'Inter'
+                    name: t.name,
+                    subdomain: t.subdomain,
+                    font_family: t.settings?.font_family || 'Inter',
+                    currency: t.currency || 'USD',
+                    currency_symbol: t.currency_symbol || getCurrencySymbol(t.currency || 'USD'),
                 });
             }
 
@@ -70,6 +77,8 @@ export default function SettingsPage() {
         try {
             const res = await api.patch("/tenants/current", {
                 name: formData.name,
+                currency: formData.currency,
+                currency_symbol: formData.currency_symbol || getCurrencySymbol(formData.currency),
                 settings: {
                     ...tenant.settings,
                     font_family: formData.font_family
@@ -207,6 +216,30 @@ export default function SettingsPage() {
                                         <option value="Outfit">Outfit (Product Modern)</option>
                                         <option value="Montserrat">Montserrat (Classic Geometric)</option>
                                     </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Store Currency</label>
+                                    <select
+                                        value={formData.currency || 'USD'}
+                                        onChange={(e) => {
+                                            const code = e.target.value;
+                                            const opt = CURRENCY_OPTIONS.find(c => c.code === code);
+                                            setFormData({ 
+                                                ...formData, 
+                                                currency: code,
+                                                currency_symbol: opt ? opt.symbol : '$'
+                                            });
+                                        }}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none bg-white"
+                                    >
+                                        {CURRENCY_OPTIONS.map((c) => (
+                                            <option key={c.code} value={c.code}>
+                                                {c.code} — {c.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[9px] font-medium text-gray-400 uppercase tracking-tighter">Currency applied to all storefront products and checkout.</p>
                                 </div>
                             </div>
 

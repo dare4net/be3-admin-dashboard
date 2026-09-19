@@ -112,6 +112,31 @@ export default function PagesManagement() {
             } else {
                 await api.post('/page-builder/pages', formData);
             }
+
+            // Sync with theme variables if header or footer
+            const slug = formData.slug;
+            const bgColor = formData.theme_overrides?.background;
+            const txtColor = formData.theme_overrides?.textColor;
+            if ((bgColor || txtColor) && (slug === 'header' || slug === 'footer')) {
+                try {
+                    const themeRes = await api.get('/page-builder/storefront/theme');
+                    const activeTheme = themeRes.data?.theme;
+                    if (activeTheme?.id) {
+                        const currentVars = activeTheme.variables || {};
+                        const updatedSection = {
+                            ...(currentVars[slug] || {}),
+                            ...(bgColor ? { backgroundColor: bgColor } : {}),
+                            ...(txtColor ? { textColor: txtColor } : {}),
+                        };
+                        await api.put(`/page-builder/themes/${activeTheme.id}`, {
+                            variables: { ...currentVars, [slug]: updatedSection }
+                        });
+                    }
+                } catch (themeErr) {
+                    console.warn('[PagesManagement] Theme sync warning:', themeErr.message);
+                }
+            }
+
             await fetchPages();
             setIsModalOpen(false);
         } catch (error) {
@@ -390,6 +415,24 @@ export default function PagesManagement() {
                                                     type="text"
                                                     value={formData.theme_overrides?.background || ''}
                                                     onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, background: e.target.value } })}
+                                                    placeholder="Global Theme Default"
+                                                    className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Text Color</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="color"
+                                                    value={formData.theme_overrides?.textColor || '#111827'}
+                                                    onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, textColor: e.target.value } })}
+                                                    className="w-10 h-10 p-0.5 border rounded cursor-pointer"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={formData.theme_overrides?.textColor || ''}
+                                                    onChange={(e) => setFormData({ ...formData, theme_overrides: { ...formData.theme_overrides, textColor: e.target.value } })}
                                                     placeholder="Global Theme Default"
                                                     className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono"
                                                 />

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Edit2, Trash2, Eye, EyeOff, Copy, ChevronRight, ChevronDown, MoreVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { GripVertical, Edit2, Trash2, Eye, EyeOff, Copy, ChevronRight, ChevronDown, MoreVertical, ArrowUp, ArrowDown, Lock } from "lucide-react";
 import { WIDGET_GROUPS } from "./SidebarLibrary";
 
 export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete, onDuplicate, onToggleVisibility, onMoveWidget, dirtyWidgetIds }) {
@@ -9,6 +9,7 @@ export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete,
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const isDirty = dirtyWidgetIds?.has(widget.id);
+    const isStockContent = widget.widget_type === 'header_stock_content' || widget.widget_type === 'footer_stock_content' || widget.widget_type === 'stock_content' || widget.is_core;
 
     const {
         attributes,
@@ -46,7 +47,7 @@ export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete,
             className="flex flex-col gap-2"
         >
             <div
-                className={`border rounded-xl p-3 flex items-center gap-4 bg-white shadow-sm hover:shadow-md transition-all border-l-4 ${!widget.is_active ? 'bg-gray-50/50' : 'border-l-blue-500'} ${isDirty ? 'ring-2 ring-amber-500/20 border-l-amber-500' : ''}`}
+                className={`border rounded-xl p-3 flex items-center gap-4 bg-white shadow-sm hover:shadow-md transition-all border-l-4 ${!widget.is_active ? 'bg-gray-50/50' : isStockContent ? 'border-l-purple-600' : 'border-l-blue-500'} ${isDirty ? 'ring-2 ring-amber-500/20 border-l-amber-500' : ''}`}
             >
                 <div
                     {...attributes}
@@ -63,13 +64,18 @@ export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete,
                     <div className="flex flex-col overflow-hidden">
                         <div className="flex items-center gap-2 text-sm font-bold text-gray-900 truncate">
                             {widget.config?.adminLabel || def.name}
+                            {isStockContent && (
+                                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded border border-purple-200 font-bold">
+                                    Stock Content
+                                </span>
+                            )}
                             {isDirty && (
                                 <span className="text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-widest animate-pulse flex items-center gap-1 shadow-sm">
                                     <span className="w-1 h-1 bg-white rounded-full" />
                                     Unsaved
                                 </span>
                             )}
-                            {widget.config?.adminLabel && (
+                            {widget.config?.adminLabel && !isStockContent && (
                                 <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100 font-semibold">
                                     {def.name}
                                 </span>
@@ -96,13 +102,15 @@ export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete,
                         >
                             {widget.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
                         </button>
-                        <button
-                            onClick={() => onDuplicate(widget)}
-                            className="p-2 hover:bg-gray-100 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
-                            title="Duplicate"
-                        >
-                            <Copy size={16} />
-                        </button>
+                        {!isStockContent && (
+                            <button
+                                onClick={() => onDuplicate(widget)}
+                                className="p-2 hover:bg-gray-100 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+                                title="Duplicate"
+                            >
+                                <Copy size={16} />
+                            </button>
+                        )}
                         <button
                             onClick={() => onEdit(widget)}
                             className="p-2 hover:bg-gray-100 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
@@ -110,13 +118,22 @@ export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete,
                         >
                             <Edit2 size={16} />
                         </button>
-                        <button
-                            onClick={() => onDelete(widget.id)}
-                            className="p-2 hover:bg-gray-100 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                            title="Delete"
-                        >
-                            <Trash2 size={16} />
-                        </button>
+                        {isStockContent ? (
+                            <div
+                                className="p-2 text-gray-300 cursor-not-allowed"
+                                title="Stock content cannot be deleted (can be hidden or re-arranged)"
+                            >
+                                <Lock size={16} />
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => onDelete(widget.id)}
+                                className="p-2 hover:bg-gray-100 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                                title="Delete"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        )}
                     </div>
 
                     {/* Expand/Collapse Button (Shared) */}
@@ -198,16 +215,20 @@ export default function DraggableBlock({ widget, widgets = [], onEdit, onDelete,
                                         </div>
                                         <span>Edit Settings</span>
                                     </button>
-                                    <div className="h-px bg-gray-50 my-1 mx-4" />
-                                    <button
-                                        onClick={() => { onDelete(widget.id); setIsMenuOpen(false); }}
-                                        className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
-                                    >
-                                        <div className="p-1.5 bg-red-50 rounded-lg">
-                                            <Trash2 size={14} />
-                                        </div>
-                                        <span>Remove Widget</span>
-                                    </button>
+                                    {!isStockContent && (
+                                        <>
+                                            <div className="h-px bg-gray-50 my-1 mx-4" />
+                                            <button
+                                                onClick={() => { onDelete(widget.id); setIsMenuOpen(false); }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
+                                            >
+                                                <div className="p-1.5 bg-red-50 rounded-lg">
+                                                    <Trash2 size={14} />
+                                                </div>
+                                                <span>Remove Widget</span>
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </>
                         )}

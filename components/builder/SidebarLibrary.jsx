@@ -69,11 +69,18 @@ export const WIDGET_GROUPS = [
             { type: 'stats', name: 'Stats', icon: <Percent size={20} />, description: 'Numbers/Counters' },
             { type: 'blog_grid', name: 'Blog Grid', icon: <LayoutTemplate size={20} />, description: 'Recent posts' },
             { type: 'custom_html', name: 'Custom HTML', icon: <Code size={20} />, description: 'Raw HTML' },
-            // Headers/Footers
+        ]
+    },
+    {
+        title: "Header & Footer",
+        widgets: [
+            { type: 'header_stock_content', name: 'Stock Header Content', icon: <Layout size={20} />, description: 'Core Header: Logo, Search, Navigation & Cart' },
+            { type: 'footer_stock_content', name: 'Stock Footer Content', icon: <LayoutTemplate size={20} />, description: 'Core Footer: Brand, Columns, Social & Copyright' },
+            { type: 'announcement_bar', name: 'Announcement Bar', icon: <Megaphone size={20} />, description: 'Top announcement bar or promotion' },
             { type: 'header_logo', name: 'Header Logo', icon: <Image size={20} />, description: 'Logo' },
             { type: 'header_nav', name: 'Header Nav', icon: <List size={20} />, description: 'Navigation menu' },
             { type: 'header_actions', name: 'Header Icons', icon: <ShoppingBag size={20} />, description: 'Cart/Account icons' },
-            { type: 'footer_column', name: 'Footer Link', icon: <List size={20} />, description: 'Footer link list' },
+            { type: 'footer_column', name: 'Footer Link Column', icon: <List size={20} />, description: 'Footer link list' },
         ]
     },
     {

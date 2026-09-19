@@ -15,7 +15,8 @@ import {
     Zap,
     Box,
     MousePointer2,
-    ShieldCheck
+    ShieldCheck,
+    Palette
 } from "lucide-react";
 import { WIDGET_GROUPS } from "@/components/builder/SidebarLibrary";
 import ProductForms from "./forms/ProductForms";
@@ -42,6 +43,7 @@ export default function WidgetEditorModal({
     collections = [],
     attributes = [],
     bannerGroups = [],
+    menus = [],
     widgets = []
 }) {
     const [formData, setFormData] = useState(() => ({
@@ -105,21 +107,57 @@ export default function WidgetEditorModal({
         });
     };
 
+    const resetToThemeStyles = () => {
+        setFormData(prev => ({
+            ...prev,
+            config: {
+                ...prev.config,
+                useThemeColors: true,
+                titleColor: '',
+                titleBackgroundColor: 'transparent',
+                colors: {
+                    ...prev.config?.colors,
+                    text: '',
+                    price: 'var(--primary)',
+                    accent: 'var(--primary)',
+                },
+                cardStyle: {
+                    ...prev.config?.cardStyle,
+                    backgroundColor: '',
+                    borderColor: ''
+                },
+                theme: undefined,
+            }
+        }));
+        alert('Active Theme styling applied! This widget will now dynamically inherit colors from your layout theme.');
+    };
+
     const widgetDef = ALL_WIDGET_TYPES.find(w => w.type === widget.widget_type);
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-                <div className="p-6 border-b flex items-center gap-3 bg-gray-50">
-                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                        {widgetDef?.icon}
+                <div className="p-6 border-b flex items-center justify-between bg-gray-50">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            {widgetDef?.icon}
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900">
+                                {widget.id ? 'Edit' : 'Add'} {widgetDef?.name}
+                            </h3>
+                            <p className="text-xs text-gray-500">{widgetDef?.description}</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900">
-                            {widget.id ? 'Edit' : 'Add'} {widgetDef?.name}
-                        </h3>
-                        <p className="text-xs text-gray-500">{widgetDef?.description}</p>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={resetToThemeStyles}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded-lg text-xs font-bold shadow-sm transition-all"
+                        title="Click to clear hardcoded colors and inherit the store layout colors"
+                    >
+                        <Palette size={14} />
+                        Inherit Theme Colors
+                    </button>
                 </div>
 
                 <div className="p-6 overflow-y-auto flex-1">
@@ -173,7 +211,8 @@ export default function WidgetEditorModal({
                             bannerGroups,
                             parentType,
                             openSections,
-                            toggleSection
+                            toggleSection,
+                            menus
                         )}
                     </form>
                 </div>
@@ -366,7 +405,8 @@ function renderWidgetForm(
     bannerGroups = [],
     parentType = null,
     openSections = {},
-    toggleSection = () => { }
+    toggleSection = () => { },
+    menus = []
 ) {
     const commonProps = {
         widgetType,
@@ -379,7 +419,8 @@ function renderWidgetForm(
         bannerGroups,
         parentType,
         openSections,
-        toggleSection
+        toggleSection,
+        menus
     };
 
     if (['product_carousel', 'product_grid'].includes(widgetType)) {
@@ -687,6 +728,14 @@ export function getDefaultConfig(widgetType) {
             position: 'top',
             backgroundColor: '#3b82f6',
             textColor: '#ffffff'
+        },
+        header_stock_content: {
+            adminLabel: 'Stock Header (Logo, Search, Nav, Cart)',
+            description: 'Core storefront header bar with live category navigation and shopping cart.',
+        },
+        footer_stock_content: {
+            adminLabel: 'Stock Footer (Brand, Nav Columns, Social, Copyright)',
+            description: 'Core storefront footer with columns, social icons, newsletter, and copyright.',
         },
         search_bar: {
             placeholder: 'Search products…',

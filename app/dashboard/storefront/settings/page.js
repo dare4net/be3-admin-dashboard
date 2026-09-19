@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import axios from '@/lib/axios';
 import { Save, Loader2, Globe, Layout, Palette } from 'lucide-react';
+import ImageUploader from '@/components/config/ImageUploader';
 
 export default function ThemeSettingsPage() {
     const [theme, setTheme] = useState(null);
@@ -12,12 +13,21 @@ export default function ThemeSettingsPage() {
     // Form State
     const [settings, setSettings] = useState({
         logo: '',
+        favicon: '',
         copyright: '',
         social: {
             facebook: '',
             twitter: '',
             instagram: '',
-            linkedin: ''
+            linkedin: '',
+            youtube: '',
+            tiktok: '',
+            pinterest: '',
+            whatsapp: '',
+            snapchat: '',
+            telegram: '',
+            iconColor: '',
+            iconHoverColor: '',
         },
         colors: {
             primary: '#000000',
@@ -132,22 +142,32 @@ export default function ThemeSettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* General Settings */}
                 <div className="md:col-span-2 space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+                    <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
                         <h3 className="font-semibold text-lg flex items-center gap-2">
                             <Globe className="w-5 h-5 text-gray-400" />
-                            General Information
+                            General Branding
                         </h3>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">Store Logo URL</label>
-                            <input
-                                type="text"
+                            <ImageUploader
+                                label="Storefront Primary Logo"
                                 value={settings.logo}
-                                onChange={e => setSettings({ ...settings, logo: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-md"
-                                placeholder="https://..."
+                                onChange={url => setSettings({ ...settings, logo: url })}
+                                folder="storefront/logos"
+                                aspectRatio="16/9"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Direct link to your logo image file.</p>
+                            <p className="text-xs text-gray-500 mt-2">Upload directly to Cloudinary or switch to Link mode to paste an external image URL.</p>
+                        </div>
+
+                        <div>
+                            <ImageUploader
+                                label="Favicon / Icon (1:1)"
+                                value={settings.favicon}
+                                onChange={url => setSettings({ ...settings, favicon: url })}
+                                folder="storefront/favicons"
+                                aspectRatio="1/1"
+                            />
+                            <p className="text-xs text-gray-500 mt-2">Square browser favicon or app icon.</p>
                         </div>
 
                         <div>
@@ -167,47 +187,72 @@ export default function ThemeSettingsPage() {
                             <Palette className="w-5 h-5 text-gray-400" />
                             Social Media Links
                         </h3>
+                        <p className="text-xs text-gray-500">Only platforms with a URL entered here will show icons on your storefront.</p>
+
+                        {/* Icon Color Pickers */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-gray-100">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Icon Color</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="color"
+                                        value={settings.social.iconColor || '#9ca3af'}
+                                        onChange={e => setSettings({ ...settings, social: { ...settings.social, iconColor: e.target.value } })}
+                                        className="w-10 h-9 border border-gray-200 rounded-lg cursor-pointer p-0.5"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={settings.social.iconColor || ''}
+                                        onChange={e => setSettings({ ...settings, social: { ...settings.social, iconColor: e.target.value } })}
+                                        className="flex-1 px-3 py-2 border rounded-md text-xs font-mono"
+                                        placeholder="#9ca3af  (default: muted gray)"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Icon Hover Color</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="color"
+                                        value={settings.social.iconHoverColor || '#ffffff'}
+                                        onChange={e => setSettings({ ...settings, social: { ...settings.social, iconHoverColor: e.target.value } })}
+                                        className="w-10 h-9 border border-gray-200 rounded-lg cursor-pointer p-0.5"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={settings.social.iconHoverColor || ''}
+                                        onChange={e => setSettings({ ...settings, social: { ...settings.social, iconHoverColor: e.target.value } })}
+                                        className="flex-1 px-3 py-2 border rounded-md text-xs font-mono"
+                                        placeholder="#ffffff  (default: white)"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Facebook</label>
-                                <input
-                                    type="text"
-                                    value={settings.social.facebook}
-                                    onChange={e => setSettings({ ...settings, social: { ...settings.social, facebook: e.target.value } })}
-                                    className="w-full px-3 py-2 border rounded-md"
-                                    placeholder="https://facebook.com/..."
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Twitter / X</label>
-                                <input
-                                    type="text"
-                                    value={settings.social.twitter}
-                                    onChange={e => setSettings({ ...settings, social: { ...settings.social, twitter: e.target.value } })}
-                                    className="w-full px-3 py-2 border rounded-md"
-                                    placeholder="https://twitter.com/..."
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Instagram</label>
-                                <input
-                                    type="text"
-                                    value={settings.social.instagram}
-                                    onChange={e => setSettings({ ...settings, social: { ...settings.social, instagram: e.target.value } })}
-                                    className="w-full px-3 py-2 border rounded-md"
-                                    placeholder="https://instagram.com/..."
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">LinkedIn</label>
-                                <input
-                                    type="text"
-                                    value={settings.social.linkedin}
-                                    onChange={e => setSettings({ ...settings, social: { ...settings.social, linkedin: e.target.value } })}
-                                    className="w-full px-3 py-2 border rounded-md"
-                                    placeholder="https://linkedin.com/..."
-                                />
-                            </div>
+                            {[
+                                { key: 'facebook',  label: 'Facebook',       placeholder: 'https://facebook.com/yourpage' },
+                                { key: 'instagram', label: 'Instagram',      placeholder: 'https://instagram.com/yourhandle' },
+                                { key: 'twitter',   label: 'Twitter / X',    placeholder: 'https://twitter.com/yourhandle' },
+                                { key: 'tiktok',    label: 'TikTok',         placeholder: 'https://tiktok.com/@yourhandle' },
+                                { key: 'youtube',   label: 'YouTube',        placeholder: 'https://youtube.com/c/yourchannel' },
+                                { key: 'pinterest', label: 'Pinterest',      placeholder: 'https://pinterest.com/yourprofile' },
+                                { key: 'linkedin',  label: 'LinkedIn',       placeholder: 'https://linkedin.com/company/...' },
+                                { key: 'whatsapp',  label: 'WhatsApp',       placeholder: 'https://wa.me/1234567890' },
+                                { key: 'snapchat',  label: 'Snapchat',       placeholder: 'https://snapchat.com/add/yourhandle' },
+                                { key: 'telegram',  label: 'Telegram',       placeholder: 'https://t.me/yourusername' },
+                            ].map(({ key, label, placeholder }) => (
+                                <div key={key}>
+                                    <label className="block text-sm font-medium mb-1">{label}</label>
+                                    <input
+                                        type="text"
+                                        value={settings.social[key] || ''}
+                                        onChange={e => setSettings({ ...settings, social: { ...settings.social, [key]: e.target.value } })}
+                                        className="w-full px-3 py-2 border rounded-md text-sm"
+                                        placeholder={placeholder}
+                                    />
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
