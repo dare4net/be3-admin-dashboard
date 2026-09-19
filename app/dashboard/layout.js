@@ -1,48 +1,150 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthContext";
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight } from "lucide-react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2, BarChart3, MessageSquare, Menu, Store, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Sidebar from "@/components/dashboard/Sidebar";
+import BrandedLoading from "@/components/ui/BrandedLoading";
+import OnboardingSlides from "@/components/dashboard/OnboardingSlides";
+import ProductTour from "@/components/dashboard/ProductTour";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const navigation = [
     {
         name: "Dashboard",
         href: "/dashboard",
         icon: LayoutDashboard,
-        exact: true
+        exact: true,
+        requiredPermission: "admin.access" // All users with admin access
+    },
+    {
+        name: "Business",
+        href: "/dashboard/business",
+        icon: Building2,
+        requiredRole: "Vendor",
+        allowSuperAdmin: true
     },
     {
         name: "Catalog",
         href: "/dashboard/catalog",
         icon: Package,
-        relatedPaths: ['/dashboard/products']
+        relatedPaths: ['/dashboard/products'],
+        requiredPermissions: ["products.view", "categories.view", "collections.view"] // Any of these
+    },
+    {
+        name: "Orders",
+        href: "/dashboard/orders",
+        icon: ShoppingCart,
+        requiredPermission: "orders.view",
+        hideForAdmin: false,
+        vendorOnly: true // Custom hint for filtering
     },
     {
         name: "Sales",
         href: "/dashboard/sales",
         icon: ShoppingCart,
-        relatedPaths: ['/dashboard/orders', '/dashboard/customers']
+        relatedPaths: ['/dashboard/orders', '/dashboard/customers'],
+        requiredPermissions: ["orders.view", "customers.view"], // Any of these
+        hideForVendor: true // Hide the grouped "Sales" for vendors
+    },
+    {
+        name: "Discounts",
+        href: "/dashboard/discounts",
+        icon: Tag,
+        relatedPaths: ['/dashboard/discounts'],
+        requiredPermission: "products.manage"
+    },
+    {
+        name: "Analytics",
+        href: "/dashboard/analytics",
+        icon: BarChart3,
+        requiredPermission: "admin.access"
     },
     {
         name: "Storefront",
         href: "/dashboard/storefront",
         icon: Paintbrush,
-        relatedPaths: ['/dashboard/menus']
+        relatedPaths: ['/dashboard/menus'],
+        requiredPermissions: ["pagebuilder.view", "pages.view", "layouts.view", "themes.view", "banners.view"] // Any
+    },
+    {
+        name: "Messages",
+        href: "/dashboard/messages",
+        icon: MessageSquare,
+        requiredPermission: "chat.access"
+    },
+    {
+        name: "Vendors",
+        href: "/dashboard/vendors",
+        icon: Store,
+        requiredPermissions: ["vendors.view", "vendors.manage"]
     },
     {
         name: "Settings",
         href: "/dashboard/settings",
-        icon: Settings
+        icon: Settings,
+        requiredPermission: "settings.view"
     },
 ];
 
 export default function DashboardLayout({ children }) {
-    const { user, loading, logout } = useAuth();
+    const { user, loading, logout, globalLoading, setGlobalLoading } = useAuth();
+    const { hasPermission, hasAnyPermission, hasRole } = usePermissions();
     const router = useRouter();
     const pathname = usePathname();
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Request push permission only after login — inside the authenticated dashboard
+    usePushNotifications();
+
+    // Onboarding and Tour States
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [showTour, setShowTour] = useState(false);
+
+    useEffect(() => {
+        // Only trigger the "persistent splash" if we AREN'T coming directly from the Login page
+        const skipSplash = sessionStorage.getItem('skip-dashboard-splash');
+
+        if (!skipSplash) {
+            setGlobalLoading(true);
+        } else {
+            // Clear the flag so future refreshes trigger the splash
+            sessionStorage.removeItem('skip-dashboard-splash');
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!loading && user) {
+            // Force show for testing as requested
+            setShowOnboarding(true);
+
+            // Check if mobile to bypass tour
+            const isMobile = window.innerWidth < 768;
+            if (!isMobile) {
+                // We'll trigger the tour manually or let onboarding trigger it
+            }
+        }
+    }, [user, loading]);
+
+    const handleOnboardingComplete = () => {
+        localStorage.setItem('onboarding-completed', 'true');
+        setShowOnboarding(false);
+        // Automatically start tour after onboarding, except on mobile
+        const isMobile = window.innerWidth < 768;
+        if (!isMobile) {
+            setShowTour(true);
+        }
+    };
+
+    const handleTourComplete = () => {
+        localStorage.setItem('tour-completed', 'true');
+        setShowTour(false);
+    };
 
     useEffect(() => {
         if (!loading && !user) {
@@ -50,29 +152,36 @@ export default function DashboardLayout({ children }) {
         }
     }, [user, loading, router]);
 
-    if (loading || !user) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-gray-600">Loading...</div>
-            </div>
-        );
-    }
+    // DashboardLayout no longer returns BrandedLoading directly; 
+    // it's managed globally by RootWrapper based on AuthContext state.
 
-    // Checking if nav item is active
-    const isNavItemActive = (item) => {
-        if (item.exact) return pathname === item.href;
-        if (pathname.startsWith(item.href)) return true;
-        if (item.relatedPaths) {
-            return item.relatedPaths.some(path => pathname.startsWith(path));
+    // Filter navigation based on user permissions
+    const filteredNavigation = navigation.filter(item => {
+        const isVendor = hasRole("Vendor");
+        const isSuperAdmin = hasPermission("*");
+
+        if (item.vendorOnly && !isVendor && !isSuperAdmin) return false;
+        if (item.hideForVendor && isVendor && !isSuperAdmin) return false;
+
+        if (item.requiredRole) {
+            const hasRequestedRole = hasRole(item.requiredRole);
+            const canBypass = item.allowSuperAdmin && isSuperAdmin;
+            if (!hasRequestedRole && !canBypass) return false;
         }
-        return false;
-    };
 
-    // Smart Breadcrumbs
+        if (!hasPermission || !hasAnyPermission) return true;
+
+        if (item.requiredPermission) return hasPermission(item.requiredPermission);
+
+        if (item.requiredPermissions && item.requiredPermissions.length > 0) {
+            return hasAnyPermission(item.requiredPermissions);
+        }
+
+        return true;
+    });
+
     const getBreadcrumbs = () => {
         const crumbs = [];
-
-        // Define groupings mapping
         const pathGroups = {
             '/dashboard/products': { label: 'Catalog', href: '/dashboard/catalog' },
             '/dashboard/orders': { label: 'Sales', href: '/dashboard/sales' },
@@ -80,7 +189,6 @@ export default function DashboardLayout({ children }) {
             '/dashboard/menus': { label: 'Storefront', href: '/dashboard/storefront' },
         };
 
-        // Check if current path belongs to a group
         let parentGroup = null;
         for (const [prefix, group] of Object.entries(pathGroups)) {
             if (pathname.startsWith(prefix)) {
@@ -89,7 +197,6 @@ export default function DashboardLayout({ children }) {
             }
         }
 
-        // Add Root Crumb (Group or Dashboard)
         if (parentGroup) {
             crumbs.push({ label: parentGroup.label, href: parentGroup.href, isLast: false });
         } else if (pathname.startsWith('/dashboard/storefront')) {
@@ -98,24 +205,17 @@ export default function DashboardLayout({ children }) {
             crumbs.push({ label: 'Catalog', href: '/dashboard/catalog', isLast: pathname === '/dashboard/catalog' });
         } else if (pathname.startsWith('/dashboard/sales')) {
             crumbs.push({ label: 'Sales', href: '/dashboard/sales', isLast: pathname === '/dashboard/sales' });
-        } else if (pathname.startsWith('/dashboard/settings')) {
-            crumbs.push({ label: 'Settings', href: '/dashboard/settings', isLast: pathname === '/dashboard/settings' });
+        } else if (pathname.startsWith('/dashboard/business')) {
+            crumbs.push({ label: 'Business', href: '/dashboard/business', isLast: true });
         } else {
-            // Default to Dashboard if not matching any group
             crumbs.push({ label: 'Dashboard', href: '/dashboard', isLast: pathname === '/dashboard' });
         }
 
-        // Add Segments
-        // We filter out common prefixes to avoid duplicates
         const segments = pathname.split('/').filter(p => p !== '' && p !== 'dashboard');
-
         let pathAccumulator = '/dashboard';
         segments.forEach((segment, index) => {
             pathAccumulator += `/${segment}`;
-
-            // Skip if this segment is implicit in the parent group (e.g. 'catalog', 'sales')
             if (['catalog', 'sales', 'storefront', 'settings'].includes(segment)) return;
-
             const label = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
             const isLast = index === segments.length - 1;
             crumbs.push({ label, href: pathAccumulator, isLast });
@@ -127,73 +227,38 @@ export default function DashboardLayout({ children }) {
     const breadcrumbs = getBreadcrumbs();
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            {/* Sidebar */}
-            <div className="fixed inset-y-0 left-0 w-64 bg-gray-900">
-                <div className="flex flex-col h-full">
-                    {/* Logo */}
-                    <div className="flex items-center h-16 px-6 bg-gray-800">
-                        <Link href="/dashboard" className="text-xl font-bold text-white">Admin Dashboard</Link>
-                    </div>
-
-                    {/* Navigation */}
-                    <nav className="flex-1 px-4 py-6 space-y-2">
-                        {navigation.map((item) => {
-                            const isActive = isNavItemActive(item);
-                            return (
-                                <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                                        isActive
-                                            ? "bg-blue-600 text-white"
-                                            : "text-gray-300 hover:bg-gray-800 hover:text-white"
-                                    )}
-                                >
-                                    <item.icon className="w-5 h-5" />
-                                    {item.name}
-                                </Link>
-                            );
-                        })}
-                    </nav>
-
-                    {/* User section */}
-                    <div className="p-4 border-t border-gray-800">
-                        <div className="flex items-center gap-3 px-4 py-2 mb-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
-                                {user.email?.[0]?.toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-white truncate">{user.email}</p>
-                                <p className="text-xs text-gray-400 truncate">Store Admin</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={logout}
-                            className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-5 h-5" />
-                            Logout
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <div className="min-h-screen bg-gray-50/50">
+            <Sidebar
+                navigation={filteredNavigation}
+                user={user}
+                logout={logout}
+                isMobileOpen={isMobileOpen}
+                setIsMobileOpen={setIsMobileOpen}
+                isCollapsed={isCollapsed}
+                setIsCollapsed={setIsCollapsed}
+            />
 
             {/* Main content */}
-            <div className="pl-64 flex flex-col min-h-screen">
+            <div className={cn(
+                "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
+                isCollapsed ? "md:pl-20" : "md:pl-64"
+            )}>
                 {/* Top Header with Breadcrumbs */}
-                <header className="h-16 bg-white border-b border-gray-200 flex items-center px-8 shadow-sm">
-                    <nav className="flex" aria-label="Breadcrumb">
-                        <ol className="flex items-center space-x-2">
-                            {/* Always show Dashboard icon as base ?? No User said Dashboard isn't source */}
-                            {/* So we only list crumbs */}
+                <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 md:px-8 shadow-sm">
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={() => setIsMobileOpen(true)}
+                        className="mr-4 md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
 
+                    <nav className="flex overflow-hidden" aria-label="Breadcrumb">
+                        <ol className="flex items-center space-x-2 whitespace-nowrap">
                             {breadcrumbs.map((crumb, index) => (
                                 <li key={crumb.href + index}>
                                     <div className="flex items-center">
                                         {index > 0 && <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />}
-
                                         {crumb.isLast ? (
                                             <span className={`text-sm font-medium text-gray-700 ${index > 0 ? 'ml-2' : ''}`}>
                                                 {crumb.label}
@@ -210,9 +275,20 @@ export default function DashboardLayout({ children }) {
                     </nav>
                 </header>
 
-                <main className="p-8 flex-1">
+                <main className="p-4 md:p-6 flex-1 overflow-x-hidden">
                     {children}
                 </main>
+
+                <OnboardingSlides
+                    isOpen={showOnboarding}
+                    onClose={() => setShowOnboarding(false)}
+                    onComplete={handleOnboardingComplete}
+                />
+
+                <ProductTour
+                    isOpen={showTour}
+                    onComplete={handleTourComplete}
+                />
             </div>
         </div>
     );

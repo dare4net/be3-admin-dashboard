@@ -1,9 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Paintbrush, FileText, List, Palette, Settings, Layout } from "lucide-react";
+import { Paintbrush, FileText, List, Palette, Settings, Layout, PanelTop, LayoutTemplate } from "lucide-react";
 
 const sections = [
+    {
+        name: "Store Layouts",
+        description: "Manage different storefront layout versions and component configurations",
+        href: "/dashboard/storefront/layouts",
+        icon: LayoutTemplate,
+        color: "bg-teal-100 text-teal-600"
+    },
     {
         name: "Theme Editor",
         description: "Customize your store's look and feel (Colors, Typography)",
@@ -26,9 +33,16 @@ const sections = [
         color: "bg-green-100 text-green-600"
     },
     {
-        name: "Menus",
-        description: "Configure your navigation headers and footers",
-        href: "/dashboard/menus",
+        name: "Header & Footer",
+        description: "Customize header elements, footer columns, links, colors, and contact info",
+        href: "/dashboard/storefront/header-footer",
+        icon: PanelTop,
+        color: "bg-orange-100 text-orange-600"
+    },
+    {
+        name: "Navigation Menus",
+        description: "Build dropdown menus with categories, clauses, and custom links",
+        href: "/dashboard/storefront/menus",
         icon: List,
         color: "bg-yellow-100 text-yellow-600"
     },

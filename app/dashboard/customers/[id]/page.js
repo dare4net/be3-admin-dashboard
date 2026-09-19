@@ -4,7 +4,179 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/axios";
-import { ArrowLeft, Mail, Calendar, Package, Clock, DollarSign, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, Calendar, Package, Clock, DollarSign, Loader2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, AlertTriangle, Video, FileText } from "lucide-react";
+
+// ─── Label maps ───────────────────────────────────────────────────────────────
+const POI_LABELS = { NIN_SLIP: "NIN Slip", NATIONAL_ID: "National ID Card", PASSPORT: "International Passport", DRIVERS_LICENSE: "Driver's Licence", PVC: "Voter's Card (PVC)" };
+const POA_LABELS = { BANK_STATEMENT: "Recent Bank Statement", UTILITY_BILL: "Recent Utility Bill", TAX_RECEIPT: "Recent Tax Receipt", TENANCY_AGREEMENT: "Tenancy Agreement", GOVT_RESIDENCE_LETTER: "Govt. Residence Letter" };
+
+// ─── Shared sub-panel ────────────────────────────────────────────────────────
+function KycSubPanel({ userId, section, status, docType, docLabel, mediaUrl, mediaLabel, reviewedAt, rejectionReason, onUpdate }) {
+    const [loading, setLoading] = useState(false);
+    const [reason, setReason] = useState("");
+    const [showRejectInput, setShowRejectInput] = useState(false);
+
+    const handleApprove = async () => {
+        setLoading(true);
+        try {
+            await api.post(`/vendor/admin/kyc/${userId}/${section}/approve`);
+            onUpdate();
+        } catch (e) { alert(e.response?.data?.message || "Failed to approve"); }
+        finally { setLoading(false); }
+    };
+
+    const handleReject = async () => {
+        if (!reason.trim()) return alert("Please enter a rejection reason");
+        setLoading(true);
+        try {
+            await api.post(`/vendor/admin/kyc/${userId}/${section}/reject`, { reason });
+            onUpdate();
+            setShowRejectInput(false);
+            setReason("");
+        } catch (e) { alert(e.response?.data?.message || "Failed to reject"); }
+        finally { setLoading(false); }
+    };
+
+    const STATUS_DISPLAY = {
+        none:      { label: "Not Submitted",  color: "text-gray-400",  bg: "bg-gray-50 border-gray-100" },
+        submitted: { label: "Pending Review", color: "text-amber-700", bg: "bg-amber-50 border-amber-100" },
+        approved:  { label: "Approved ✓",     color: "text-green-700", bg: "bg-green-50 border-green-100" },
+        rejected:  { label: "Rejected",       color: "text-red-700",   bg: "bg-red-50 border-red-100" },
+    };
+    const display = STATUS_DISPLAY[status] || STATUS_DISPLAY.none;
+
+    return (
+        <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-600">
+                    {docType ? `${docLabel || docType}` : mediaLabel}
+                </span>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[10px] font-bold ${display.bg} ${display.color}`}>
+                    {display.label}
+                </span>
+            </div>
+
+            {/* Always show the media link when present */}
+            {mediaUrl ? (
+                <a href={mediaUrl} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-blue-600 hover:underline border border-blue-100 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                    {mediaLabel || "View ↗"}
+                </a>
+            ) : (
+                <p className="text-[10px] text-gray-400 italic">
+                    {status === "none" ? "Awaiting submission from user" : "No file on record"}
+                </p>
+            )}
+
+            {status === "rejected" && rejectionReason && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 italic">{rejectionReason}</p>
+            )}
+            {reviewedAt && (
+                <p className="text-[10px] text-gray-400">Reviewed {new Date(reviewedAt).toLocaleDateString()}</p>
+            )}
+
+            {/* Show action buttons for any status that has a file (submitted / approved / rejected) */}
+            {status !== "none" && (
+                <div className="flex gap-2 pt-1">
+                    <button onClick={handleApprove} disabled={loading || status === "approved"}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-all
+                            ${status === "approved"
+                                ? "bg-green-100 text-green-700 border-green-200 cursor-default"
+                                : "bg-white border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50"}`}>
+                        <CheckCircle className="w-3 h-3" />{loading ? "…" : status === "approved" ? "Approved" : "Approve"}
+                    </button>
+                    <button onClick={() => setShowRejectInput(!showRejectInput)} disabled={loading || status === "rejected"}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-all
+                            ${status === "rejected"
+                                ? "bg-red-100 text-red-700 border-red-200 cursor-default"
+                                : "bg-white border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"}`}>
+                        <XCircle className="w-3 h-3" />{status === "rejected" ? "Rejected" : "Reject"}
+                    </button>
+                </div>
+            )}
+            {showRejectInput && (
+                <div className="flex flex-col gap-2">
+                    <input value={reason} onChange={e => setReason(e.target.value)}
+                        placeholder="Rejection reason…"
+                        className="w-full px-3 py-2 text-xs border border-red-200 rounded-lg focus:outline-none bg-white focus:border-red-400" />
+                    <button onClick={handleReject} disabled={loading || !reason.trim()}
+                        className="w-full py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase rounded-lg disabled:opacity-50 transition-all">
+                        {loading ? "…" : "Confirm Rejection"}
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── KYB simple panel ────────────────────────────────────────────────────────
+function KybPanel({ userId, status, cacUrl, reviewedAt, rejectionReason, onUpdate }) {
+    const [loading, setLoading] = useState(false);
+    const [reason, setReason] = useState("");
+    const [showRejectInput, setShowRejectInput] = useState(false);
+
+    const handleApprove = async () => {
+        setLoading(true);
+        try { await api.post(`/vendor/admin/kyb/${userId}/approve`); onUpdate(); }
+        catch (e) { alert(e.response?.data?.message || "Failed"); }
+        finally { setLoading(false); }
+    };
+    const handleReject = async () => {
+        if (!reason.trim()) return alert("Reason required");
+        setLoading(true);
+        try { await api.post(`/vendor/admin/kyb/${userId}/reject`, { reason }); onUpdate(); setShowRejectInput(false); setReason(""); }
+        catch (e) { alert(e.response?.data?.message || "Failed"); }
+        finally { setLoading(false); }
+    };
+
+    const STATUS_DISPLAY = {
+        none: { label: "Not Started", color: "text-gray-400", bg: "bg-gray-50 border-gray-100" },
+        submitted: { label: "Pending Review", color: "text-amber-700", bg: "bg-amber-50 border-amber-100" },
+        approved: { label: "Approved ✓", color: "text-green-700", bg: "bg-green-50 border-green-100" },
+        rejected: { label: "Rejected", color: "text-red-700", bg: "bg-red-50 border-red-100" },
+    };
+    const display = STATUS_DISPLAY[status] || STATUS_DISPLAY.none;
+
+    return (
+        <div className="space-y-2.5">
+            <div className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[10px] font-bold ${display.bg} ${display.color}`}>{display.label}</div>
+            {cacUrl ? (
+                <div>
+                    <a href={cacUrl} target="_blank" rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-blue-600 hover:underline border border-blue-100 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                        View CAC Document ↗
+                    </a>
+                </div>
+            ) : (
+                <p className="text-[10px] text-gray-400 italic">
+                    {status === "none" ? "Awaiting submission from user" : "No document on file"}
+                </p>
+            )}
+            {status === "rejected" && rejectionReason && (<p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 italic">{rejectionReason}</p>)}
+            {reviewedAt && (<p className="text-[10px] text-gray-400">Reviewed {new Date(reviewedAt).toLocaleDateString()}</p>)}
+            {status !== "none" && (
+                <div className="flex gap-2 pt-1">
+                    <button onClick={handleApprove} disabled={loading || status === "approved"}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-all
+                            ${status === "approved" ? "bg-green-100 text-green-700 border-green-200 cursor-default" : "bg-white border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50"}`}>
+                        <CheckCircle className="w-3 h-3" />{loading ? "…" : status === "approved" ? "Approved" : "Approve"}
+                    </button>
+                    <button onClick={() => setShowRejectInput(!showRejectInput)} disabled={loading || status === "rejected"}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg border transition-all
+                            ${status === "rejected" ? "bg-red-100 text-red-700 border-red-200 cursor-default" : "bg-white border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"}`}>
+                        <XCircle className="w-3 h-3" />{status === "rejected" ? "Rejected" : "Reject"}
+                    </button>
+                </div>
+            )}
+            {showRejectInput && (
+                <div className="flex flex-col gap-2">
+                    <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Rejection reason…" className="w-full px-3 py-2 text-xs border border-red-200 rounded-lg focus:outline-none bg-white focus:border-red-400" />
+                    <button onClick={handleReject} disabled={loading || !reason.trim()} className="w-full py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase rounded-lg disabled:opacity-50 transition-all">{loading ? "…" : "Confirm Rejection"}</button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function CustomerDetailsPage() {
     const { id } = useParams();
@@ -177,6 +349,88 @@ export default function CustomerDetailsPage() {
                                 </span>
                             </div>
                         </div>
+                    </div>
+
+                    {/* ── KYC Panel (granular) ── */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                                <ShieldCheck className="w-3.5 h-3.5" /> Identity Verification (KYC)
+                            </h3>
+                            {/* Overall KYC status badge */}
+                            {(() => {
+                                const s = user.kyc_status || "none";
+                                const cls = { approved:"bg-green-100 text-green-700", submitted:"bg-amber-100 text-amber-700", rejected:"bg-red-100 text-red-700", none:"bg-gray-100 text-gray-500" };
+                                return <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${cls[s]||cls.none}`}>{s}</span>;
+                            })()}
+                        </div>
+
+                        {/* POI sub-panel */}
+                        <div className="border border-gray-100 rounded-xl p-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5"><FileText className="w-3 h-3" /> Proof of Identity</p>
+                            <KycSubPanel
+                                userId={id} section="poi"
+                                status={user.poi_status || "none"}
+                                docType={user.poi_doc_type}
+                                docLabel={POI_LABELS[user.poi_doc_type]}
+                                mediaUrl={user.poi_doc_url}
+                                mediaLabel="View Document ↗"
+                                reviewedAt={user.poi_reviewed_at}
+                                rejectionReason={user.poi_rejection_reason}
+                                onUpdate={fetchData}
+                            />
+                        </div>
+
+                        {/* Liveness sub-panel */}
+                        <div className="border border-gray-100 rounded-xl p-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5"><Video className="w-3 h-3" /> Liveness Video</p>
+                            <KycSubPanel
+                                userId={id} section="liveness"
+                                status={user.liveness_status || "none"}
+                                mediaUrl={user.liveness_video_url}
+                                mediaLabel="View Video ↗"
+                                reviewedAt={user.liveness_reviewed_at}
+                                rejectionReason={user.liveness_rejection_reason}
+                                onUpdate={fetchData}
+                            />
+                        </div>
+
+                        {/* POA sub-panel */}
+                        <div className="border border-gray-100 rounded-xl p-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5"><FileText className="w-3 h-3" /> Proof of Address</p>
+                            <KycSubPanel
+                                userId={id} section="poa"
+                                status={user.poa_status || "none"}
+                                docType={user.poa_doc_type}
+                                docLabel={POA_LABELS[user.poa_doc_type]}
+                                mediaUrl={user.poa_doc_url}
+                                mediaLabel="View Document ↗"
+                                reviewedAt={user.poa_reviewed_at}
+                                rejectionReason={user.poa_rejection_reason}
+                                onUpdate={fetchData}
+                            />
+                        </div>
+                    </div>
+
+                    {/* ── KYB Panel ── */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                            <ShieldAlert className="w-3.5 h-3.5" /> Business Verification (KYB)
+                        </h3>
+                        {user.kyc_status !== "approved" ? (
+                            <p className="text-xs text-gray-400 italic flex items-center gap-1.5">
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> KYC must be approved first
+                            </p>
+                        ) : (
+                            <KybPanel
+                                userId={id}
+                                status={user.kyb_status || "none"}
+                                cacUrl={user.kyb_cac_url}
+                                reviewedAt={user.kyb_reviewed_at}
+                                rejectionReason={user.kyb_rejection_reason}
+                                onUpdate={fetchData}
+                            />
+                        )}
                     </div>
                 </div>
 

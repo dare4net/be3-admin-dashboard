@@ -3,8 +3,37 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import api from "@/lib/axios";
-import { Search, Filter, Loader2, RefreshCw } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Search, Filter, Loader2, RefreshCw, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+// ── Status config ─────────────────────────────────────────────────────────────
+const ORDER_STATUS = {
+    pending:    { label: "Pending",    cls: "bg-amber-50 text-amber-700 ring-amber-200"   },
+    processing: { label: "Processing", cls: "bg-blue-50 text-blue-700 ring-blue-200"      },
+    shipped:    { label: "Shipped",    cls: "bg-indigo-50 text-indigo-700 ring-indigo-200" },
+    delivered:  { label: "Delivered",  cls: "bg-green-50 text-green-700 ring-green-200"   },
+    returned:   { label: "Returned",   cls: "bg-orange-50 text-orange-700 ring-orange-200" },
+    cancelled:  { label: "Cancelled",  cls: "bg-red-50 text-red-700 ring-red-200"         },
+};
+
+const PAYMENT_STATUS = {
+    unpaid:     { label: "Unpaid",     cls: "bg-red-50 text-red-700 ring-red-200"         },
+    processing: { label: "Verifying",  cls: "bg-amber-50 text-amber-700 ring-amber-200"   },
+    paid:       { label: "Paid",       cls: "bg-green-50 text-green-700 ring-green-200"   },
+    failed:     { label: "Failed",     cls: "bg-red-50 text-red-800 ring-red-200"         },
+    fulfilled:  { label: "Paid (DM)",  cls: "bg-teal-50 text-teal-700 ring-teal-200"     },
+    refunded:   { label: "Refunded",   cls: "bg-orange-50 text-orange-700 ring-orange-200" },
+};
+
+function OrderBadge({ status }) {
+    const cfg = ORDER_STATUS[status] || { label: status, cls: "bg-gray-100 text-gray-600 ring-gray-200" };
+    return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset ${cfg.cls}`}>{cfg.label}</span>;
+}
+
+function PaymentBadge({ status }) {
+    const cfg = PAYMENT_STATUS[status] || { label: status, cls: "bg-gray-100 text-gray-600 ring-gray-200" };
+    return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${cfg.cls}`}>{cfg.label}</span>;
+}
 
 export default function OrdersPage() {
     const router = useRouter();
@@ -83,19 +112,27 @@ export default function OrdersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
-                <button
-                    onClick={fetchOrders}
-                    className="p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
-                    title="Refresh Orders"
-                >
-                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                </button>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
+                    <p className="text-sm text-gray-400 mt-0.5">View and manage all store orders</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Link href="/dashboard/orders/create"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-sm">
+                        <Plus className="w-4 h-4" />
+                        Create Order
+                    </Link>
+                    <button onClick={fetchOrders}
+                        className="p-2.5 text-gray-500 hover:text-gray-900 rounded-xl hover:bg-gray-100 transition-colors border border-gray-200"
+                        title="Refresh Orders">
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-4">
+            <div className="bg-white p-4 rounded-lg shadow-none border border-gray-100 flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -115,17 +152,17 @@ export default function OrdersPage() {
                     >
                         <option value="all">All Statuses</option>
                         <option value="pending">Pending</option>
-                        <option value="paid">Paid</option>
                         <option value="processing">Processing</option>
                         <option value="shipped">Shipped</option>
-                        <option value="completed">Completed</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="returned">Returned</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
             </div>
 
-            {/* Orders Table */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* Desktop Orders Table */}
+            <div className="hidden md:block bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-700 font-medium border-b">
@@ -134,28 +171,34 @@ export default function OrdersPage() {
                                 <th className="px-6 py-4">Date</th>
                                 <th className="px-6 py-4">Customer</th>
                                 <th className="px-6 py-4">Total</th>
-                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Order Status</th>
+                                <th className="px-6 py-4">Payment</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-20 text-center text-gray-500">
+                                    <td colSpan="7" className="px-6 py-20 text-center text-gray-500">
                                         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-600" />
                                         Loading orders...
                                     </td>
                                 </tr>
                             ) : orders.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                                         No orders found matching your filters.
                                     </td>
                                 </tr>
                             ) : (
                                 orders.map((order) => (
                                     <tr key={order.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
-                                        <td className="px-6 py-4 font-medium text-blue-600">{order.order_number}</td>
+                                        <td className="px-6 py-4">
+                                            <span className="font-semibold text-blue-600">{order.order_number}</span>
+                                            {order.checkout_type === 'whatsapp' && (
+                                                <span className="ml-1.5 text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-1.5 py-0.5 rounded-full font-medium">DM</span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 text-gray-600">
                                             {new Date(order.created_at).toLocaleDateString()}
                                             <span className="text-xs text-gray-400 block">
@@ -164,24 +207,15 @@ export default function OrdersPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="font-medium text-gray-900">{order.customer_email || 'Guest'}</div>
-                                            {order.user_id && <div className="text-xs text-gray-500">Registered User</div>}
+                                            {order.user_id && <div className="text-xs text-gray-500">Registered</div>}
                                         </td>
-                                        <td className="px-6 py-4 font-medium">${parseFloat(order.total).toFixed(2)}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                                                ${order.status === 'paid' ? 'bg-green-100 text-green-800' :
-                                                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                        order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                                                            order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                                                'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                {order.status}
-                                            </span>
-                                        </td>
+                                        <td className="px-6 py-4 font-semibold">₦{parseFloat(order.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</td>
+                                        <td className="px-6 py-4"><OrderBadge status={order.status} /></td>
+                                        <td className="px-6 py-4"><PaymentBadge status={order.payment_status} /></td>
                                         <td className="px-6 py-4 text-right">
                                             <Link
                                                 href={`/dashboard/orders/${order.id}`}
-                                                className="text-blue-600 hover:text-blue-800 font-medium"
+                                                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 View
@@ -193,7 +227,53 @@ export default function OrdersPage() {
                         </tbody>
                     </table>
                 </div>
+            </div>
 
+            {/* Mobile Card List */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="bg-white p-12 rounded-lg border border-gray-200 text-center">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-600" />
+                        <p className="text-gray-500">Loading orders...</p>
+                    </div>
+                ) : orders.length === 0 ? (
+                    <div className="bg-white p-8 rounded-lg border border-gray-200 text-center">
+                        <p className="text-gray-500">No orders found.</p>
+                    </div>
+                ) : (
+                    orders.map((order) => (
+                        <div
+                            key={order.id}
+                            onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+                            className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm active:bg-gray-50 transition-colors"
+                        >
+                            <div className="flex justify-between items-start mb-2">
+                                <div>
+                                    <p className="text-sm font-bold text-blue-600">
+                                        {order.order_number}
+                                        {order.checkout_type === 'whatsapp' && <span className="ml-1.5 text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-1.5 py-0.5 rounded-full">DM</span>}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{new Date(order.created_at).toLocaleDateString()} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <OrderBadge status={order.status} />
+                                    <PaymentBadge status={order.payment_status} />
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-end">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900">{order.customer_email || 'Guest'}</p>
+                                    {order.user_id && <p className="text-[10px] text-gray-400 uppercase font-bold">Member</p>}
+                                </div>
+                                <p className="text-lg font-black text-gray-900">₦{parseFloat(order.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</p>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Shared Pagination */}
+            <div className="bg-white rounded-lg shadow-none border border-gray-100 mt-6">
                 {/* Pagination */}
                 {!loading && pagination.total > 0 && (
                     <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">

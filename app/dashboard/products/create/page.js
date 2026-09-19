@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
-import { Star, X, Folder, ChevronRight, ArrowLeft, Image as ImageIcon } from "lucide-react";
-import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
+import { 
+    Folder, ChevronRight, ArrowLeft, X, Check 
+} from "lucide-react";
+import ProductForm from "@/components/products/ProductForm";
 
 export default function CreateProductPage() {
     const router = useRouter();
@@ -16,65 +18,9 @@ export default function CreateProductPage() {
     const [currentParentId, setCurrentParentId] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState(null);
 
-    const [formData, setFormData] = useState({
-        name: "",
-        description: "",
-        sku: "",
-        price: "",
-        status: "draft",
-        is_featured: false,
-        category_ids: [],
-        tags: [],
-        handle: "",
-        image_url: "",
-        attributes: {}, // { code: value }
-        // Comprehensive SEO Fields
-        meta_description: "",
-        og_title: "",
-        og_description: "",
-        og_image: "",
-        og_type: "product",
-        twitter_card: "summary_large_image",
-        twitter_title: "",
-        twitter_description: "",
-        twitter_image: "",
-        canonical_url: "",
-        robots: "index,follow",
-        structured_data: null
-    });
-    const [tagInput, setTagInput] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [availableAttributes, setAvailableAttributes] = useState([]);
-
     useEffect(() => {
         fetchCategories();
     }, []);
-
-    // Fetch attributes when category is selected (Step 2)
-    useEffect(() => {
-        const fetchAttributes = async () => {
-            if (!selectedCategory) {
-                setAvailableAttributes([]);
-                return;
-            }
-
-            try {
-                // Fetch attributes for the single selected category (which includes inherited ones)
-                const res = await api.get(`/products/categories/${selectedCategory.id}/admin`);
-
-                if (res.data.category && res.data.category.attributes) {
-                    // Only show attributes that are not explicitly ignored for this category
-                    setAvailableAttributes(res.data.category.attributes.filter(a => !a.is_ignored));
-                }
-            } catch (error) {
-                console.error("Failed to fetch attributes", error);
-            }
-        };
-
-        if (step === 'form' && selectedCategory) {
-            fetchAttributes();
-        }
-    }, [step, selectedCategory]);
 
     const fetchCategories = async () => {
         try {
@@ -98,76 +44,23 @@ export default function CreateProductPage() {
     };
 
     const handleSelectCategory = (category) => {
-        // Select category and move to form (works for any category)
         setSelectedCategory(category);
-        setFormData(prev => ({ ...prev, category_ids: [category.id] }));
         setStep('form');
     };
 
     const handleCategoryClick = (category) => {
         if (hasChildren(category.id)) {
-            // Drill down
             setCurrentParentId(category.id);
         } else {
-            // Select leaf and move to form
             handleSelectCategory(category);
         }
     };
 
     const handleBackUp = () => {
-        if (currentParentId === null) return; // Already at top
+        if (currentParentId === null) return;
         const current = categories.find(c => c.id === currentParentId);
         setCurrentParentId(current ? (current.parent_id || null) : null);
     };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-
-        try {
-            await api.post("/products", {
-                ...formData,
-                price: parseFloat(formData.price),
-            });
-            router.push("/dashboard/products");
-        } catch (err) {
-            console.error("Failed to create product", err);
-            alert(`Failed to create product: ${err.response?.data?.message || err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleNameChange = (name) => {
-        const handle = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        setFormData(prev => ({
-            ...prev,
-            name,
-            handle: prev.handle || handle,
-            og_title: prev.og_title || name
-        }));
-    };
-
-    const handleAttributeChange = (code, value) => {
-        setFormData(prev => ({
-            ...prev,
-            attributes: {
-                ...prev.attributes,
-                [code]: value
-            }
-        }));
-    };
-
-    const addTag = () => {
-        const newTags = tagInput.split(',').map(t => t.trim()).filter(t => t && !formData.tags.includes(t));
-        if (newTags.length > 0) {
-            setFormData(prev => ({ ...prev, tags: [...prev.tags, ...newTags] }));
-        }
-        setTagInput("");
-    };
-    const removeTag = (tag) => setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
-    const handleTagKeyDown = (e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(); } };
-
 
     // ------------------------------------------------------------------
     // RENDER: STEP 1 - CATEGORY SELECTION
@@ -177,82 +70,81 @@ export default function CreateProductPage() {
         const parentCategory = categories.find(c => c.id === currentParentId);
 
         return (
-            <div className="max-w-4xl mx-auto p-8">
-                <h1 className="text-2xl font-bold mb-2">Category Selection</h1>
-                <p className="text-gray-500 mb-8">Choose the category for your new product.</p>
+            <div className="w-full space-y-4 max-w-5xl mx-auto">
+                <div className="flex flex-col gap-1 mb-6">
+                    <h1 className="text-2xl font-black text-gray-900">Category Selection</h1>
+                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mt-1">Pick a classification context for your product</p>
+                </div>
 
-                <div className="bg-white rounded-lg shadow-lg border p-6 min-h-[400px]">
-                    {/* Breadcrumb / Navigation */}
-                    <div className="flex items-center gap-2 mb-6 text-sm">
+                <div className="bg-white rounded-[32px] shadow-none border border-gray-100 p-8 min-h-[400px]">
+                    <div className="flex items-center gap-2 mb-8 text-[10px] font-black uppercase tracking-widest overflow-x-auto whitespace-nowrap pb-2">
                         <button
                             onClick={() => setCurrentParentId(null)}
-                            className={`hover:text-blue-600 ${currentParentId === null ? 'font-bold text-gray-900' : 'text-gray-500'}`}
+                            className={cn("hover:text-blue-600 transition", currentParentId === null ? 'text-gray-900' : 'text-gray-400')}
                         >
                             All Categories
                         </button>
                         {parentCategory && (
                             <>
-                                <ChevronRight className="w-4 h-4 text-gray-400" />
-                                <span className="font-bold text-gray-900">{parentCategory.name}</span>
+                                <ChevronRight className="w-4 h-4 text-gray-300" />
+                                <span className="text-gray-900">{parentCategory.name}</span>
                             </>
                         )}
                     </div>
 
                     {currentParentId !== null && (
-                        <button onClick={handleBackUp} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
-                            <ArrowLeft className="w-4 h-4" /> Back
+                        <button onClick={handleBackUp} className="flex items-center gap-1 text-[10px] font-black text-blue-600 hover:text-blue-700 mb-8 uppercase tracking-[0.2em] transition-all">
+                            <ArrowLeft className="w-4 h-4" /> Return to Parent
                         </button>
                     )}
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:space-y-0">
                         {currentOptions.map(cat => (
                             <div
                                 key={cat.id}
-                                className="group border rounded-lg p-4 hover:border-blue-500 transition flex flex-col items-center text-center gap-3"
+                                className="group flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 hover:border-blue-500 hover:bg-blue-50/30 transition-all shadow-none"
                             >
-                                {cat.image_url ? (
-                                    <img src={cat.image_url} className="w-16 h-16 object-cover rounded-md" alt="" />
-                                ) : (
-                                    <div className="w-16 h-16 bg-blue-100 text-blue-500 rounded-md flex items-center justify-center">
-                                        <Folder className="w-8 h-8 fill-current" />
-                                    </div>
-                                )}
-
-                                <div className="flex-1">
-                                    <span className="font-medium text-gray-900 block">{cat.name}</span>
+                                <div
+                                    onClick={() => handleCategoryClick(cat)}
+                                    className="w-14 h-14 bg-gray-50 text-gray-400 border border-gray-100 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all cursor-pointer shadow-sm"
+                                >
+                                    {cat.image_url ? (
+                                        <img src={cat.image_url} className="w-full h-full object-cover rounded-2xl" alt="" />
+                                    ) : (
+                                        <Folder className="w-6 h-6" />
+                                    )}
                                 </div>
 
-                                {hasChildren(cat.id) ? (
-                                    <div className="flex flex-col gap-2 w-full">
-                                        <button
-                                            onClick={() => handleSelectCategory(cat)}
-                                            className="w-full px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 transition"
-                                        >
-                                            Select This Category
-                                        </button>
-                                        <button
-                                            onClick={() => handleCategoryClick(cat)}
-                                            className="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center justify-center gap-1"
-                                        >
-                                            <ChevronRight className="w-3 h-3" />
-                                            View Subcategories
-                                        </button>
-                                    </div>
-                                ) : (
+                                <div
+                                    onClick={() => handleCategoryClick(cat)}
+                                    className="flex-1 min-w-0 cursor-pointer"
+                                >
+                                    <span className="font-black text-sm text-gray-900 block truncate leading-tight group-hover:text-blue-600 transition-colors">{cat.name}</span>
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                                        {hasChildren(cat.id) ? 'Explore Sub-folders' : 'Select Direct context'}
+                                    </p>
+                                </div>
+
+                                <div className="flex gap-2">
                                     <button
-                                        onClick={() => handleSelectCategory(cat)}
-                                        className="w-full px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                                        onClick={(e) => { e.stopPropagation(); handleSelectCategory(cat); }}
+                                        className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center shadow-lg shadow-blue-500/10"
+                                        title="Select this category"
                                     >
-                                        Select Category
+                                        <Check className="w-4 h-4" />
                                     </button>
-                                )}
+                                    {hasChildren(cat.id) && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleCategoryClick(cat); }}
+                                            className="p-2.5 bg-white text-gray-400 rounded-xl hover:bg-gray-50 transition-all flex items-center justify-center border border-gray-100"
+                                            title="View subcategories"
+                                        >
+                                            <ChevronRight className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
-                        {currentOptions.length === 0 && (
-                            <div className="col-span-full text-center py-12 text-gray-500">
-                                No categories found here.
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -260,207 +152,40 @@ export default function CreateProductPage() {
     }
 
     // ------------------------------------------------------------------
-    // RENDER: STEP 2 - PRODUCT FORM
+    // RENDER: STEP 2 - MODERN PRODUCT FORM
     // ------------------------------------------------------------------
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-8">
-            <div className="flex items-center justify-between mb-6">
+        <div className="w-full space-y-6 max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Create Product</h1>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                        Creating in: <span className="font-semibold text-blue-600 px-2 py-0.5 bg-blue-50 rounded">{selectedCategory?.name}</span>
-                        <button onClick={() => setStep('category_selection')} className="text-gray-400 hover:text-gray-600 underline text-xs ml-2">Change</button>
+                    <h1 className="text-2xl font-black text-gray-900">Finalize Product</h1>
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Context:</span>
+                        <div className="flex items-center gap-2 px-3 py-1 bg-white border border-gray-100 rounded-full shadow-sm">
+                            <span className="text-[10px] font-black uppercase text-blue-600 tracking-widest">{selectedCategory?.name}</span>
+                            <button 
+                                onClick={() => setStep('category_selection')} 
+                                className="text-[10px] font-black uppercase text-gray-300 hover:text-blue-600 underline tracking-[0.2em] transition-colors"
+                            >
+                                Change
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <button
                     type="button"
                     onClick={() => router.back()}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="p-3 text-gray-400 hover:text-gray-900 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm"
                 >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5" />
                 </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Basic Information */}
-                <div className="bg-white rounded-lg shadow p-6 space-y-6">
-                    <h2 className="text-xl font-semibold border-b pb-2">Basic Information</h2>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Product Name *
-                        </label>
-                        <input type="text" required className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                            value={formData.name} onChange={(e) => handleNameChange(e.target.value)} />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Product Image URL</label>
-                        <div className="flex gap-4 items-start">
-                            <input type="url" className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
-                                value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                                placeholder="https://example.com/image.jpg" />
-                            {formData.image_url && <img src={formData.image_url} alt="Preview" className="w-16 h-16 object-cover rounded border bg-gray-50" onError={(e) => e.target.style.display = 'none'} />}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                        <textarea rows={4} className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                            value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Price ($) *</label>
-                            <input type="number" step="0.01" required className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">SKU *</label>
-                            <input type="text" required className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                            <select className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                                value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                                <option value="draft">Draft</option>
-                                <option value="active">Active</option>
-                                <option value="archived">Archived</option>
-                            </select>
-                        </div>
-                        <div className="flex items-center pt-8">
-                            <label className="flex items-center cursor-pointer">
-                                <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-                                    checked={formData.is_featured} onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })} />
-                                <span className="ml-2 text-sm font-medium text-gray-700 flex items-center gap-1">
-                                    <Star className="w-4 h-4 text-yellow-500" />
-                                    Mark as Featured
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Attributes Section */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Attributes for {selectedCategory?.name}</h2>
-
-                    {availableAttributes.length === 0 ? (
-                        <p className="text-gray-500 italic">No specific attributes defined for this category.</p>
-                    ) : (
-                        <div className="grid grid-cols-2 gap-6">
-                            {availableAttributes.map(attr => (
-                                <div key={attr.code}>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        {attr.image_url ? (
-                                            <img src={attr.image_url} alt="" className="w-5 h-5 object-cover rounded" />
-                                        ) : (
-                                            <ImageIcon className="w-4 h-4 text-gray-400" />
-                                        )}
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            {attr.label}
-                                            {attr.is_required && <span className="text-red-500 ml-1">*</span>}
-                                        </label>
-                                    </div>
-
-                                    {attr.type === 'text' && (
-                                        <input type="text" className="w-full px-3 py-2 border rounded-lg"
-                                            value={formData.attributes[attr.code] || ''}
-                                            onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
-                                            required={attr.is_required} />
-                                    )}
-
-                                    {attr.type === 'number' && (
-                                        <input type="number" className="w-full px-3 py-2 border rounded-lg"
-                                            value={formData.attributes[attr.code] || ''}
-                                            onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
-                                            required={attr.is_required} />
-                                    )}
-
-                                    {attr.type === 'select' && (
-                                        <select className="w-full px-3 py-2 border rounded-lg"
-                                            value={formData.attributes[attr.code] || ''}
-                                            onChange={(e) => handleAttributeChange(attr.code, e.target.value)}
-                                            required={attr.is_required}>
-                                            <option value="">Select {attr.label}...</option>
-                                            {attr.options?.map((opt, i) => (
-                                                <option key={i} value={opt.value}>{opt.label}</option>
-                                            ))}
-                                        </select>
-                                    )}
-
-                                    {attr.type === 'boolean' && (
-                                        <select className="w-full px-3 py-2 border rounded-lg"
-                                            value={formData.attributes[attr.code] || ''}
-                                            onChange={(e) => handleAttributeChange(attr.code, e.target.value)}>
-                                            <option value="">Select...</option>
-                                            <option value="true">Yes</option>
-                                            <option value="false">No</option>
-                                        </select>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Organization (Tags) */}
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold border-b pb-2 mb-4">Tags</h2>
-                    <div className="flex gap-2 mb-2">
-                        <input type="text" className="flex-1 px-4 py-2 border rounded-lg"
-                            placeholder="Add tag..." value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={handleTagKeyDown} />
-                        <button type="button" onClick={addTag} className="px-4 py-2 bg-gray-200 rounded-lg">Add</button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {formData.tags.map((tag) => (
-                            <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                                {tag}
-                                <button type="button" onClick={() => removeTag(tag)} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                {/* SEO & URL */}
-                <div className="bg-white rounded-lg shadow p-6 space-y-6">
-                    <h2 className="text-xl font-semibold border-b pb-2">SEO & URL</h2>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">URL Handle</label>
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-500 text-sm">/products/</span>
-                            <input type="text" className="flex-1 px-4 py-2 border rounded-lg"
-                                value={formData.handle} onChange={(e) => setFormData({ ...formData, handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
-                        </div>
-                    </div>
-
-                    {/* Comprehensive SEO Editor */}
-                    <div className="border-t pt-4">
-                        <h3 className="text-md font-semibold mb-3 text-gray-800">Search Engine Optimization</h3>
-                        <p className="text-xs text-gray-500 mb-4">
-                            💡 Leave fields empty to inherit from category: <span className="font-semibold">{selectedCategory?.name}</span>
-                        </p>
-                        <SEOMetaEditor
-                            page={formData}
-                            onChange={(updated) => setFormData(updated)}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex gap-4">
-                    <button type="submit" disabled={loading} className={cn("flex-1 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700", loading && "opacity-50")}>
-                        {loading ? "Creating..." : "Create Product"}
-                    </button>
-                    <button type="button" onClick={() => router.back()} className="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                        Cancel
-                    </button>
-                </div>
-            </form>
+            <ProductForm 
+                categoryId={selectedCategory?.id} 
+                onSuccess={() => router.push("/dashboard/products")}
+                onCancel={() => setStep('category_selection')}
+            />
         </div>
     );
 }

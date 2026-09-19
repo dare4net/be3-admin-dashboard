@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ShoppingCart, Users } from "lucide-react";
+import PermissionGate from "@/components/PermissionGate";
 
 const sections = [
     {
@@ -9,14 +10,16 @@ const sections = [
         description: "View and manage customer orders and shipments",
         href: "/dashboard/orders",
         icon: ShoppingCart,
-        color: "bg-green-100 text-green-600"
+        color: "bg-green-100 text-green-600",
+        permission: "orders.view"
     },
     {
         name: "Customers",
         description: "View customer profiles and history",
         href: "/dashboard/customers",
         icon: Users,
-        color: "bg-blue-100 text-blue-600"
+        color: "bg-blue-100 text-blue-600",
+        permission: "customers.view"
     }
 ];
 
@@ -28,23 +31,24 @@ export default function SalesHub() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {sections.map((item) => (
-                    <Link
-                        key={item.name}
-                        href={item.href}
-                        className="block p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group"
-                    >
-                        <div className="flex items-center gap-4 mb-3">
-                            <div className={`p-3 rounded-lg ${item.color} group-hover:scale-110 transition-transform`}>
-                                <item.icon className="w-6 h-6" />
+                    <PermissionGate key={item.name} permission={item.permission}>
+                        <Link
+                            href={item.href}
+                            className="block p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group"
+                        >
+                            <div className="flex items-center gap-4 mb-3">
+                                <div className={`p-3 rounded-lg ${item.color} group-hover:scale-110 transition-transform`}>
+                                    <item.icon className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                    {item.name}
+                                </h3>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                {item.name}
-                            </h3>
-                        </div>
-                        <p className="text-gray-500 text-sm">
-                            {item.description}
-                        </p>
-                    </Link>
+                            <p className="text-gray-500 text-sm">
+                                {item.description}
+                            </p>
+                        </Link>
+                    </PermissionGate>
                 ))}
             </div>
         </div>

@@ -2,9 +2,15 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import { Save, Loader2, Store, LayoutTemplate } from "lucide-react";
+import { Save, Loader2, Store, LayoutTemplate, Shield, Users, Settings as SettingsIcon, MapPin, Globe } from "lucide-react";
 import Link from 'next/link';
 import RolesTab from "./RolesTab";
+import UsersTab from "./UsersTab";
+import MasterTopologyTab from "./MasterTopologyTab";
+import DomainTab from "./DomainTab";
+import { cn } from "@/lib/utils";
+
+import { CURRENCY_OPTIONS, getCurrencySymbol } from "@/lib/currency";
 
 export default function SettingsPage() {
     const [tenant, setTenant] = useState(null);
@@ -12,13 +18,17 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
-        subdomain: ""
+        subdomain: "",
+        font_family: "Inter",
+        currency: "USD",
+        currency_symbol: "$",
     });
     const [activeTab, setActiveTab] = useState("store");
     const [user, setUser] = useState(null);
     const [profileForm, setProfileForm] = useState({
         first_name: "",
         last_name: "",
+        business_name: "",
         password: ""
     });
 
@@ -34,11 +44,14 @@ export default function SettingsPage() {
             ]);
 
             if (tenantRes.data.success) {
-                setTenant(tenantRes.data.tenant);
+                const t = tenantRes.data.tenant;
+                setTenant(t);
                 setFormData({
-                    name: tenantRes.data.tenant.name,
-                    subdomain: tenantRes.data.tenant.subdomain,
-                    font_family: tenantRes.data.tenant.settings?.font_family || 'Inter'
+                    name: t.name,
+                    subdomain: t.subdomain,
+                    font_family: t.settings?.font_family || 'Inter',
+                    currency: t.currency || 'USD',
+                    currency_symbol: t.currency_symbol || getCurrencySymbol(t.currency || 'USD'),
                 });
             }
 
@@ -47,6 +60,7 @@ export default function SettingsPage() {
                 setProfileForm({
                     first_name: userRes.data.user.first_name || "",
                     last_name: userRes.data.user.last_name || "",
+                    business_name: userRes.data.user.business_name || "",
                     password: ""
                 });
             }
@@ -63,6 +77,8 @@ export default function SettingsPage() {
         try {
             const res = await api.patch("/tenants/current", {
                 name: formData.name,
+                currency: formData.currency,
+                currency_symbol: formData.currency_symbol || getCurrencySymbol(formData.currency),
                 settings: {
                     ...tenant.settings,
                     font_family: formData.font_family
@@ -71,7 +87,6 @@ export default function SettingsPage() {
             if (res.data.success) {
                 setTenant(res.data.tenant);
                 alert("Store settings updated!");
-                window.location.reload();
             }
         } catch (err) {
             console.error(err);
@@ -87,7 +102,8 @@ export default function SettingsPage() {
         try {
             const updateData = {
                 first_name: profileForm.first_name,
-                last_name: profileForm.last_name
+                last_name: profileForm.last_name,
+                business_name: profileForm.business_name
             };
             if (profileForm.password) {
                 updateData.password = profileForm.password;
@@ -96,7 +112,7 @@ export default function SettingsPage() {
             const res = await api.patch("/auth/me", updateData);
             if (res.data.success) {
                 setUser(res.data.user);
-                setProfileForm(prev => ({ ...prev, password: "" })); // Clear password
+                setProfileForm(prev => ({ ...prev, password: "" }));
                 alert("Profile updated!");
             }
         } catch (err) {
@@ -109,184 +125,224 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[200px]">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <div className="flex flex-col items-center justify-center min-h-[400px] grayscale opacity-50">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Loading Configuration...</p>
             </div>
         );
     }
 
+    const tabs = [
+        { id: "store", label: "Store Identity", icon: Store },
+        { id: "domain", label: "Domain & DNS", icon: Globe },
+        { id: "roles", label: "Security Roles", icon: Shield },
+        { id: "users", label: "Staff & Access", icon: Users },
+        { id: "topology", label: "Master Topology", icon: Globe },
+        { id: "profile", label: "My Profile", icon: SettingsIcon },
+    ];
+
     return (
-        <div className="max-w-2xl">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <Store className="w-6 h-6" />
-                Settings
-            </h1>
-
-            {/* Tabs */}
-            <div className="flex space-x-1 rounded-xl bg-gray-100 p-1 mb-6">
-                <button
-                    onClick={() => setActiveTab("store")}
-                    className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-gray-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === "store" ? "bg-white shadow" : "text-gray-600 hover:bg-white/[0.12] hover:text-gray-800"
-                        }`}
-                >
-                    Store Settings
-                </button>
-                <button
-                    onClick={() => setActiveTab("profile")}
-                    className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-gray-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === "profile" ? "bg-white shadow" : "text-gray-600 hover:bg-white/[0.12] hover:text-gray-800"
-                        }`}
-                >
-                    Profile Settings
-                </button>
-                <button
-                    onClick={() => setActiveTab("roles")}
-                    className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-gray-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === "roles" ? "bg-white shadow" : "text-gray-600 hover:bg-white/[0.12] hover:text-gray-800"
-                        }`}
-                >
-                    Roles & Permissions
-                </button>
-            </div>
-
-            {activeTab === "store" ? (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <form onSubmit={handleStoreSubmit} className="space-y-6">
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                                Store Name
-                            </label>
-                            <input
-                                type="text"
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                required
-                            />
-                            <p className="mt-1 text-xs text-gray-500">This validation name appears in your storefront header.</p>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Subdomain
-                            </label>
-                            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border rounded-lg text-gray-500">
-                                <span className="font-medium text-gray-900">{formData.subdomain}</span>
-                                <span>.yourplatform.com</span>
-                            </div>
-                            <p className="mt-1 text-xs text-gray-500">Subdomains cannot be changed after creation.</p>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Font Family
-                            </label>
-                            <select
-                                value={formData.font_family || 'Inter'}
-                                onChange={(e) => setFormData({ ...formData, font_family: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                            >
-                                <option value="Inter">Inter (Default)</option>
-                                <option value="Roboto">Roboto</option>
-                                <option value="Open Sans">Open Sans</option>
-                                <option value="Lato">Lato</option>
-                                <option value="Raleway">Raleway</option>
-                                <option value="Montserrat">Montserrat</option>
-                            </select>
-                            <p className="mt-1 text-xs text-gray-500">Select the primary font for your storefront.</p>
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
-                            <Link
-                                href="/dashboard/storefront/layouts"
-                                className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 bg-white rounded-lg hover:bg-gray-50 font-medium transition-colors"
-                            >
-                                <LayoutTemplate className="w-4 h-4" />
-                                Manage Layouts
-                            </Link>
-
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
-                            >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Save Changes
-                            </button>
-                        </div>
-                    </form>
+        <div className="w-full space-y-6 pb-24">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <SettingsIcon className="w-6 h-6 text-gray-900" />
+                    <h1 className="text-2xl font-black text-gray-900">Settings</h1>
                 </div>
-            ) : activeTab === "roles" ? (
-                <RolesTab />
-            ) : (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <form onSubmit={handleProfileSubmit} className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                                <input
-                                    type="text"
-                                    value={profileForm.first_name}
-                                    onChange={(e) => setProfileForm({ ...profileForm, first_name: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                                <input
-                                    type="text"
-                                    value={profileForm.last_name}
-                                    onChange={(e) => setProfileForm({ ...profileForm, last_name: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-                        </div >
+            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input
-                                type="email"
-                                value={user?.email || ""}
-                                disabled
-                                className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">Email cannot be changed.</p>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                            <input
-                                type="password"
-                                value={profileForm.password}
-                                onChange={(e) => setProfileForm({ ...profileForm, password: e.target.value })}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                placeholder="Leave blank to keep current password"
-                            />
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-100 flex justify-end">
+            {/* Horizontal Scrollable Tabs on Mobile */}
+            <div className="flex overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+                <div className="flex space-x-2 bg-gray-100/50 p-1 rounded-lg border border-gray-100 min-w-full md:min-w-0">
+                    {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        return (
                             <button
-                                type="submit"
-                                disabled={saving}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={cn(
+                                    "flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                                    activeTab === tab.id
+                                        ? "bg-white text-blue-600 rounded shadow-none border border-gray-100"
+                                        : "text-gray-400 hover:text-gray-600"
+                                )}
                             >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Update Profile
+                                <Icon className="w-3.5 h-3.5" />
+                                {tab.label}
                             </button>
-                        </div>
-                    </form >
-                </div >
-            )
-            }
+                        );
+                    })}
+                </div>
+            </div>
 
-            <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-4 text-red-600">Danger Zone</h2>
-                <p className="text-sm text-gray-600 mb-4">
-                    Once you delete your store, there is no going back. Please be certain.
+            {/* Tab Content */}
+            <div className="animate-in fade-in duration-300">
+                {activeTab === "store" && (
+                    <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-50 bg-gray-50/30">
+                            <h2 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Global Instance Configuration</h2>
+                        </div>
+                        <form onSubmit={handleStoreSubmit} className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Store Registry Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                        required
+                                    />
+                                    <p className="text-[9px] font-medium text-gray-400 uppercase tracking-tighter">Public branding label for headers and invoices.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Allocated Subdomain</label>
+                                    <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-xs font-mono text-gray-500">
+                                        <span className="font-black text-gray-900">{formData.subdomain}</span>
+                                        <span>.be3.app</span>
+                                    </div>
+                                    <p className="text-[9px] font-medium text-gray-400 uppercase tracking-tighter italic">Immutable system identifier.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Aesthetic Typography</label>
+                                    <select
+                                        value={formData.font_family || 'Inter'}
+                                        onChange={(e) => setFormData({ ...formData, font_family: e.target.value })}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none bg-white"
+                                    >
+                                        <option value="Inter">Inter (System Default)</option>
+                                        <option value="Manrope">Manrope (Clean Geometric)</option>
+                                        <option value="Outfit">Outfit (Product Modern)</option>
+                                        <option value="Montserrat">Montserrat (Classic Geometric)</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Store Currency</label>
+                                    <select
+                                        value={formData.currency || 'USD'}
+                                        onChange={(e) => {
+                                            const code = e.target.value;
+                                            const opt = CURRENCY_OPTIONS.find(c => c.code === code);
+                                            setFormData({ 
+                                                ...formData, 
+                                                currency: code,
+                                                currency_symbol: opt ? opt.symbol : '$'
+                                            });
+                                        }}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none bg-white"
+                                    >
+                                        {CURRENCY_OPTIONS.map((c) => (
+                                            <option key={c.code} value={c.code}>
+                                                {c.code} — {c.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[9px] font-medium text-gray-400 uppercase tracking-tighter">Currency applied to all storefront products and checkout.</p>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
+                                <Link
+                                    href="/dashboard/storefront/layouts"
+                                    className="px-6 py-2.5 bg-white border border-gray-200 text-gray-400 rounded-lg text-[10px] font-black uppercase tracking-widest hover:text-gray-900 transition-all"
+                                >
+                                    Manage Layouts
+                                </Link>
+
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="flex items-center gap-2 px-8 py-2.5 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-none"
+                                >
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Sync Store Settings
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
+                {activeTab === "domain" && (
+                    <DomainTab tenant={tenant} onUpdateTenant={(updatedTenant) => setTenant(updatedTenant)} />
+                )}
+
+                {activeTab === "roles" && <RolesTab />}
+                {activeTab === "users" && <UsersTab />}
+                {activeTab === "topology" && <MasterTopologyTab />}
+
+                {activeTab === "profile" && (
+                    <div className="bg-white rounded-lg shadow-none border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-50 bg-gray-50/30">
+                            <h2 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Personal Identification Context</h2>
+                        </div>
+                        <form onSubmit={handleProfileSubmit} className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">First Name</label>
+                                    <input
+                                        type="text"
+                                        value={profileForm.first_name}
+                                        onChange={(e) => setProfileForm({ ...profileForm, first_name: e.target.value })}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Last Name</label>
+                                    <input
+                                        type="text"
+                                        value={profileForm.last_name}
+                                        onChange={(e) => setProfileForm({ ...profileForm, last_name: e.target.value })}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Primary Login Credentials (Email)</label>
+                                    <input
+                                        type="email"
+                                        value={user?.email || ""}
+                                        disabled
+                                        className="w-full px-4 py-3 bg-gray-100 border border-gray-100 rounded-lg text-sm font-mono text-gray-400 cursor-not-allowed"
+                                    />
+                                </div>
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Reset Security Pin (Password)</label>
+                                    <input
+                                        type="password"
+                                        value={profileForm.password}
+                                        onChange={(e) => setProfileForm({ ...profileForm, password: e.target.value })}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all"
+                                        placeholder="Leave empty to maintain status quo"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 flex justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="flex items-center gap-2 px-8 py-2.5 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-none"
+                                >
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Commit Profile Updates
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+            </div>
+
+            {/* Danger Zone Refinement */}
+            <div className="p-6 bg-red-50/30 rounded-lg border border-red-100">
+                <h2 className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Destructive Operations Zone</h2>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tight mb-4">
+                    Permanent deletion of this instance. IRREVERSIBLE ACTION.
                 </p>
-                <button disabled className="px-4 py-2 border border-red-200 text-red-600 rounded-lg bg-red-50 opacity-50 cursor-not-allowed">
-                    Delete Store (Coming Soon)
+                <button disabled className="px-6 py-2.5 border border-red-200 text-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest bg-white opacity-50 cursor-not-allowed transition-all">
+                    Initiate Instance Purge (In Development)
                 </button>
             </div>
-        </div >
+        </div>
     );
 }
