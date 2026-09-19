@@ -6,10 +6,11 @@ import Link from "next/link";
 import { ArrowLeft, Tag, Percent, DollarSign, Truck, Calendar, AlertCircle, Layers } from "lucide-react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
+import { useCurrency } from "@/hooks/useCurrency";
 
-const TYPES = [
+const getTypes = (symbol) => [
     { value: 'percentage',    label: '% Discount',    icon: Percent,    desc: 'e.g. 20% off the order total' },
-    { value: 'fixed',         label: 'Fixed Amount',  icon: DollarSign, desc: 'e.g. ₦500 off the order total' },
+    { value: 'fixed',         label: 'Fixed Amount',  icon: DollarSign, desc: `e.g. ${symbol}500 off the order total` },
     { value: 'free_shipping', label: 'Free Shipping', icon: Truck,      desc: 'Remove shipping cost from order' },
 ];
 
@@ -20,6 +21,8 @@ const APPLICABILITY = [
 
 export default function CreateCouponPage() {
     const router = useRouter();
+    const { currencySymbol } = useCurrency();
+    const TYPES = getTypes(currencySymbol);
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
         code: '',
@@ -163,7 +166,7 @@ export default function CreateCouponPage() {
                     {form.type !== 'free_shipping' && (
                         <div>
                             <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">
-                                {form.type === 'percentage' ? 'Discount %' : 'Discount Amount (₦)'}
+                                {form.type === 'percentage' ? 'Discount %' : `Discount Amount (${currencySymbol})`}
                             </label>
                             <div className="relative">
                                 {form.type === 'percentage'
@@ -183,7 +186,7 @@ export default function CreateCouponPage() {
                     <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Rules & Limits</h2>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Min Order Value (₦)</label>
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1.5">Min Order Value ({currencySymbol})</label>
                             <input type="number" min="0" value={form.min_order_value} onChange={e => set('min_order_value', e.target.value)}
                                 placeholder="0 = no minimum"
                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all" />

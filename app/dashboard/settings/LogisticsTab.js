@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { Truck, Map, Settings, Loader2, Save, Plus, Trash2, Globe, AlertCircle, Edit3, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export default function LogisticsTab() {
+    const { currencySymbol } = useCurrency();
     const [loading, setLoading] = useState(true);
     const [savingBase, setSavingBase] = useState(false);
     const [savingZone, setSavingZone] = useState(false);
@@ -204,7 +206,7 @@ export default function LogisticsTab() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-2 relative">
                             <div className="flex items-center justify-between">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Base Standard Fee (₦)</label>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Base Standard Fee ({currencySymbol})</label>
                                 {baseConfig.unconfigured && (
                                     <span className="text-[9px] font-bold text-red-500 uppercase px-1.5 py-0.5 bg-red-50 rounded">Action Required - Unsaved</span>
                                 )}

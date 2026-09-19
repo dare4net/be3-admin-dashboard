@@ -11,6 +11,7 @@ import DomainTab from "./DomainTab";
 import { cn } from "@/lib/utils";
 
 import { CURRENCY_OPTIONS, getCurrencySymbol } from "@/lib/currency";
+import { updateCurrencyCache } from "@/hooks/useCurrency";
 
 export default function SettingsPage() {
     const [tenant, setTenant] = useState(null);
@@ -86,6 +87,7 @@ export default function SettingsPage() {
             });
             if (res.data.success) {
                 setTenant(res.data.tenant);
+                updateCurrencyCache(res.data.tenant.currency, res.data.tenant.currency_symbol);
                 alert("Store settings updated!");
             }
         } catch (err) {

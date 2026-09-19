@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/axios";
+import { useCurrency } from "@/hooks/useCurrency";
 import {
     ArrowLeft, Loader2, CheckCircle, XCircle, Clock, Package,
     User, ShieldCheck, ShieldAlert, ChevronRight, AlertTriangle,
@@ -54,6 +55,7 @@ function StepTracker({ status }) {
 }
 
 function TestProductRow({ product, onReview }) {
+    const { formatPrice } = useCurrency();
     const [notes, setNotes] = useState(product.review_notes || "");
     const [loading, setLoading] = useState(false);
 
@@ -75,7 +77,7 @@ function TestProductRow({ product, onReview }) {
                 <div className="min-w-0">
                     <p className="font-bold text-sm text-gray-900">{product.title}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                        ₦{parseFloat(product.price || 0).toLocaleString()}
+                        {formatPrice(product.price || 0)}
                         {product.sku && <span className="ml-2 text-gray-400">SKU: {product.sku}</span>}
                     </p>
                     {product.review_notes && (
