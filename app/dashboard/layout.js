@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2, BarChart3, MessageSquare, Menu, Store, Tag } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut, Users, Paintbrush, Folder, Tags, Palette, List, FileText, ChevronRight, Building2, BarChart3, MessageSquare, Menu, Store, Tag, Boxes, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Sidebar from "@/components/dashboard/Sidebar";
 import BrandedLoading from "@/components/ui/BrandedLoading";
@@ -57,6 +57,20 @@ const navigation = [
         icon: Tag,
         relatedPaths: ['/dashboard/discounts'],
         requiredPermission: "products.manage"
+    },
+    {
+        name: "Inventory",
+        href: "/dashboard/inventory",
+        icon: Boxes,
+        relatedPaths: ['/dashboard/inventory'],
+        requiredPermission: "products.manage"
+    },
+    {
+        name: "POS",
+        href: "/dashboard/pos",
+        icon: Monitor,
+        relatedPaths: ['/dashboard/pos'],
+        requiredPermissions: ["pos.access", "products.manage"]
     },
     {
         name: "Analytics",
@@ -159,6 +173,10 @@ export default function DashboardLayout({ children }) {
     const filteredNavigation = navigation.filter(item => {
         const isVendor = hasRole("Vendor");
         const isSuperAdmin = hasPermission("*");
+        const isCashierOnly = hasRole("Cashier") && !isVendor && !isSuperAdmin && !hasPermission("admin.access");
+
+        // Cashier-only users see ONLY the POS terminal
+        if (isCashierOnly && item.href !== '/dashboard/pos') return false;
 
         if (item.vendorOnly && !isVendor && !isSuperAdmin) return false;
         if (item.hideForVendor && isVendor && !isSuperAdmin) return false;
@@ -167,6 +185,11 @@ export default function DashboardLayout({ children }) {
             const hasRequestedRole = hasRole(item.requiredRole);
             const canBypass = item.allowSuperAdmin && isSuperAdmin;
             if (!hasRequestedRole && !canBypass) return false;
+        }
+
+        // Vendors own inventory and registers: always allow POS and Inventory
+        if (isVendor && (item.href === '/dashboard/pos' || item.href === '/dashboard/inventory')) {
+            return true;
         }
 
         if (!hasPermission || !hasAnyPermission) return true;

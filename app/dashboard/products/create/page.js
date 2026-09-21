@@ -1,16 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
 import { 
-    Folder, ChevronRight, ArrowLeft, X, Check 
+    Folder, ChevronRight, ArrowLeft, X, Check, Boxes, Loader2 
 } from "lucide-react";
 import ProductForm from "@/components/products/ProductForm";
 
-export default function CreateProductPage() {
+function CreateProductContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const from = searchParams.get('from');
+    const defaultTrackInventory = searchParams.get('track_inventory') === 'true';
+    const returnUrl = from === 'inventory' ? "/dashboard/inventory" : "/dashboard/products";
+
     const [categories, setCategories] = useState([]);
 
     // Workflow State
@@ -71,9 +76,29 @@ export default function CreateProductPage() {
 
         return (
             <div className="w-full space-y-4 max-w-5xl mx-auto">
-                <div className="flex flex-col gap-1 mb-6">
-                    <h1 className="text-2xl font-black text-gray-900">Category Selection</h1>
-                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mt-1">Pick a classification context for your product</p>
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl font-black text-gray-900">
+                                {from === 'inventory' ? 'New Inventory Product' : 'Category Selection'}
+                            </h1>
+                            {from === 'inventory' && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                    <Boxes size={12} /> Stock Tracking Enabled
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mt-1">Pick a classification context for your product</p>
+                    </div>
+                    {from === 'inventory' && (
+                        <button
+                            type="button"
+                            onClick={() => router.push(returnUrl)}
+                            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                        >
+                            <ArrowLeft size={13} /> Back to Inventory
+                        </button>
+                    )}
                 </div>
 
                 <div className="bg-white rounded-[32px] shadow-none border border-gray-100 p-8 min-h-[400px]">
@@ -158,7 +183,16 @@ export default function CreateProductPage() {
         <div className="w-full space-y-6 max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900">Finalize Product</h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-2xl font-black text-gray-900">
+                            {from === 'inventory' ? 'Finalize Inventory Product' : 'Finalize Product'}
+                        </h1>
+                        {from === 'inventory' && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                <Boxes size={12} /> Stock Tracking
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-3 mt-2">
                         <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Context:</span>
                         <div className="flex items-center gap-2 px-3 py-1 bg-white border border-gray-100 rounded-full shadow-sm">
@@ -174,7 +208,7 @@ export default function CreateProductPage() {
                 </div>
                 <button
                     type="button"
-                    onClick={() => router.back()}
+                    onClick={() => router.push(returnUrl)}
                     className="p-3 text-gray-400 hover:text-gray-900 bg-white border border-gray-100 rounded-2xl transition-all shadow-sm"
                 >
                     <X className="w-5 h-5" />
@@ -183,9 +217,22 @@ export default function CreateProductPage() {
 
             <ProductForm 
                 categoryId={selectedCategory?.id} 
-                onSuccess={() => router.push("/dashboard/products")}
+                onSuccess={() => router.push(returnUrl)}
                 onCancel={() => setStep('category_selection')}
+                defaultTrackInventory={defaultTrackInventory || from === 'inventory'}
             />
         </div>
+    );
+}
+
+export default function CreateProductPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+        }>
+            <CreateProductContent />
+        </Suspense>
     );
 }

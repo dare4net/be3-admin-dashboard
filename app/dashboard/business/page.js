@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import BusinessTab from "../settings/BusinessTab";
 import LogisticsTab from "../settings/LogisticsTab";
-import { Loader2, Briefcase, MapPin } from "lucide-react";
+import CashiersTab from "./CashiersTab";
+import { Loader2, Briefcase, MapPin, Users } from "lucide-react";
 
 export default function BusinessPage() {
     const [user, setUser] = useState(null);
@@ -36,13 +37,14 @@ export default function BusinessPage() {
     const tabs = [
         { id: "profile", label: "Business Profile", icon: Briefcase },
         { id: "logistics", label: "Delivery Settings", icon: MapPin },
+        { id: "cashiers", label: "Cashiers & Registers", icon: Users },
     ];
 
     return (
         <div className="w-full space-y-6 max-w-5xl">
             <div>
                 <h1 className="text-2xl font-black text-gray-900">Business Management</h1>
-                <p className="text-sm text-gray-500 mt-1">Manage your business profile and delivery logistics.</p>
+                <p className="text-sm text-gray-500 mt-1">Manage your business profile, delivery logistics, and cashier staff.</p>
             </div>
 
             <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
@@ -66,7 +68,9 @@ export default function BusinessPage() {
             <div className="pt-2">
                 {activeTab === "profile" && <BusinessTab user={user} onUpdate={(updated) => setUser(updated)} />}
                 {activeTab === "logistics" && <LogisticsTab user={user} onUpdate={(updated) => setUser(updated)} />}
+                {activeTab === "cashiers" && <CashiersTab />}
             </div>
         </div>
     );
 }
+

@@ -36,6 +36,23 @@ function PaymentBadge({ status }) {
     return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${cfg.cls}`}>{cfg.label}</span>;
 }
 
+function getResolvedChannel(order) {
+    if (!order) return { label: "Storefront", cls: "bg-blue-50 text-blue-700 border-blue-200 ring-blue-200" };
+    if (order.channel === "pos" || order.order_number?.startsWith("POS-") || order.metadata?.source === "pos") {
+        return { label: "POS Terminal", cls: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-200" };
+    }
+    if (order.checkout_type === "whatsapp" || order.order_number?.startsWith("WA-") || order.metadata?.is_whatsapp) {
+        return { label: "WhatsApp Order", cls: "bg-green-50 text-green-700 border-green-200 ring-green-200" };
+    }
+    if (order.order_number?.startsWith("PRE-") || order.metadata?.is_bot_preorder) {
+        return { label: "BE3 AI Pre-Order", cls: "bg-purple-50 text-purple-700 border-purple-200 ring-purple-200" };
+    }
+    if (order.channel === "manual_admin" || order.metadata?.source === "vendor_created" || order.metadata?.source === "wa_tools") {
+        return { label: "Manual / Admin", cls: "bg-amber-50 text-amber-700 border-amber-200 ring-amber-200" };
+    }
+    return { label: "Storefront", cls: "bg-blue-50 text-blue-700 border-blue-200 ring-blue-200" };
+}
+
 export default function OrderDetailsPage() {
     const { id } = useParams();
     const router = useRouter();
@@ -116,6 +133,8 @@ export default function OrderDetailsPage() {
         );
     }
 
+    const channelInfo = getResolvedChannel(order);
+
     return (
         <div className="max-w-5xl mx-auto space-y-6">
             {/* Header */}
@@ -128,9 +147,9 @@ export default function OrderDetailsPage() {
                         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                             Order {order.order_number}
                             <OrderBadge status={order.status} />
-                            {order.checkout_type === 'whatsapp' && (
-                                <span className="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1"><svg viewBox="0 0 24 24" className="w-3 h-3 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" /><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.117 1.534 5.845L0 24l6.335-1.505A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.371l-.36-.214-3.727.886.936-3.618-.235-.372A9.818 9.818 0 1112 21.818z" /></svg> WhatsApp Order</span>
-                            )}
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ring-1 ring-inset ${channelInfo.cls}`}>
+                                {channelInfo.label}
+                            </span>
                         </h1>
                         <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
                             <Calendar className="w-3 h-3" />
@@ -258,23 +277,79 @@ export default function OrderDetailsPage() {
                         </div>
                     </div>
 
-                    {/* Timeline (Placeholder) */}
+                    {/* Timeline & Audit Trail */}
                     <div className="bg-white rounded-lg shadow-none border border-gray-100 p-5">
-                        <h3 className="font-medium text-gray-900 mb-4">Order Timeline</h3>
+                        <h3 className="font-medium text-gray-900 mb-4 flex items-center justify-between">
+                            <span>Order Timeline & Audit Trail</span>
+                            <span className="text-xs text-gray-400 font-normal">Full activity log</span>
+                        </h3>
                         <div className="space-y-4">
                             <div className="flex gap-3">
-                                <div className="mt-1 w-2 h-2 rounded-full bg-blue-600 ring-4 ring-blue-50"></div>
+                                <div className="mt-1 w-2.5 h-2.5 rounded-full bg-blue-600 ring-4 ring-blue-50"></div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-900">Order Placed</p>
                                     <p className="text-xs text-gray-500">{new Date(order.created_at).toLocaleString()}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Channel: {channelInfo.label}</p>
                                 </div>
                             </div>
                             {order.paid_at && (
                                 <div className="flex gap-3">
-                                    <div className="mt-1 w-2 h-2 rounded-full bg-green-500"></div>
+                                    <div className="mt-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-50"></div>
                                     <div>
                                         <p className="text-sm font-medium text-gray-900">Payment Confirmed</p>
                                         <p className="text-xs text-gray-500">{new Date(order.paid_at).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {order.payment_confirmed_at && (
+                                <div className="flex gap-3">
+                                    <div className="mt-1 w-2.5 h-2.5 rounded-full bg-teal-500 ring-4 ring-teal-50"></div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">Manual Payment Confirmed (DM/Cash)</p>
+                                        <p className="text-xs text-gray-500">{new Date(order.payment_confirmed_at).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {Array.isArray(order.metadata?.audit_log) && order.metadata.audit_log.map((log, idx) => (
+                                <div key={idx} className="flex gap-3">
+                                    <div className="mt-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-indigo-50"></div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900 capitalize">
+                                            {log.action ? log.action.replace(/_/g, ' ') : 'Status Update'}
+                                        </p>
+                                        <p className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleString()}</p>
+                                        <p className="text-xs text-gray-600 mt-0.5 font-medium">
+                                            {log.from ? `${log.from} → ${log.to}` : log.to}
+                                            {log.actor_name && <span className="text-gray-400 font-normal"> • by {log.actor_name}</span>}
+                                        </p>
+                                        {log.note && <p className="text-xs italic text-gray-500 mt-0.5">"{log.note}"</p>}
+                                    </div>
+                                </div>
+                            ))}
+                            {order.shipped_at && (
+                                <div className="flex gap-3">
+                                    <div className="mt-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-indigo-50"></div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">Order Shipped</p>
+                                        <p className="text-xs text-gray-500">{new Date(order.shipped_at).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {order.delivered_at && (
+                                <div className="flex gap-3">
+                                    <div className="mt-1 w-2.5 h-2.5 rounded-full bg-green-600 ring-4 ring-green-50"></div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">Order Delivered</p>
+                                        <p className="text-xs text-gray-500">{new Date(order.delivered_at).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {order.cancelled_at && (
+                                <div className="flex gap-3">
+                                    <div className="mt-1 w-2.5 h-2.5 rounded-full bg-red-600 ring-4 ring-red-50"></div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">Order Cancelled</p>
+                                        <p className="text-xs text-gray-500">{new Date(order.cancelled_at).toLocaleString()}</p>
                                     </div>
                                 </div>
                             )}
@@ -330,13 +405,7 @@ export default function OrderDetailsPage() {
                             </div>
                             <div className="flex justify-between py-1">
                                 <span className="text-gray-500">Channel</span>
-                                <span className="font-medium">
-                                    {order.payment_status === 'fulfilled'
-                                        ? 'Manual'
-                                        : order.checkout_type === 'whatsapp'
-                                            ? 'DM'
-                                            : 'Platform'}
-                                </span>
+                                <span className="font-medium">{channelInfo.label}</span>
                             </div>
                             {order.payment_confirmed_at && (
                                 <div className="flex justify-between py-1">

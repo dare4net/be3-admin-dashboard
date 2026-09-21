@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import { Save, Loader2, Store, LayoutTemplate, Shield, Users, Settings as SettingsIcon, MapPin, Globe } from "lucide-react";
+import { Save, Loader2, Store, LayoutTemplate, Shield, Users, Settings as SettingsIcon, MapPin, Globe, Percent } from "lucide-react";
 import Link from 'next/link';
 import RolesTab from "./RolesTab";
 import UsersTab from "./UsersTab";
 import MasterTopologyTab from "./MasterTopologyTab";
 import DomainTab from "./DomainTab";
+import TaxTab from "./TaxTab";
 import { cn } from "@/lib/utils";
 
 import { CURRENCY_OPTIONS, getCurrencySymbol } from "@/lib/currency";
@@ -137,6 +138,7 @@ export default function SettingsPage() {
     const tabs = [
         { id: "store", label: "Store Identity", icon: Store },
         { id: "domain", label: "Domain & DNS", icon: Globe },
+        { id: "tax", label: "Tax & Compliance", icon: Percent },
         { id: "roles", label: "Security Roles", icon: Shield },
         { id: "users", label: "Staff & Access", icon: Users },
         { id: "topology", label: "Master Topology", icon: Globe },
@@ -269,6 +271,8 @@ export default function SettingsPage() {
                 {activeTab === "domain" && (
                     <DomainTab tenant={tenant} onUpdateTenant={(updatedTenant) => setTenant(updatedTenant)} />
                 )}
+
+                {activeTab === "tax" && <TaxTab />}
 
                 {activeTab === "roles" && <RolesTab />}
                 {activeTab === "users" && <UsersTab />}

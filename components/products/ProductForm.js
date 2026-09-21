@@ -10,10 +10,11 @@ import {
 import SEOMetaEditor from "@/components/page-builder/SEOMetaEditor";
 import PremiumImageUpload from "@/components/ui/PremiumImageUpload";
 
-export default function ProductForm({ categoryId, onSuccess, onCancel }) {
+export default function ProductForm({ categoryId, onSuccess, onCancel, defaultTrackInventory = false }) {
     // Collapsible sections state
     const [expandedSections, setExpandedSections] = useState({
         basic: true,
+        inventory: true,
         attributes: true,
         seo: false,
         tags: false,
@@ -33,6 +34,9 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
         status: "draft",
         is_featured: false,
         category_ids: categoryId ? [categoryId] : [],
+        track_inventory: defaultTrackInventory,
+        inventory_quantity: 0,
+        low_stock_threshold: 5,
         tags: [],
         handle: "",
         image_url: "",
@@ -101,7 +105,10 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
             await api.post("/products", {
                 ...formData,
                 price: parseFloat(formData.price),
-                category_id: categoryId // Main category context
+                category_id: categoryId, // Main category context
+                track_inventory: !!formData.track_inventory,
+                inventory_quantity: formData.track_inventory ? (parseInt(formData.inventory_quantity) || 0) : 0,
+                low_stock_threshold: formData.track_inventory ? (parseInt(formData.low_stock_threshold) || 5) : null
             });
             if (onSuccess) onSuccess();
         } catch (err) {
@@ -240,6 +247,75 @@ export default function ProductForm({ categoryId, onSuccess, onCancel }) {
                                 </label>
                             </div>
                         </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Inventory & Stock Section */}
+            <div className="bg-white rounded-3xl shadow-none border border-gray-100 overflow-hidden">
+                <button
+                    type="button"
+                    onClick={() => toggleSection('inventory')}
+                    className="w-full flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors"
+                >
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em]">Inventory & Stock Control</h2>
+                        <span className={cn(
+                            "text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest",
+                            formData.track_inventory ? "text-emerald-700 bg-emerald-50" : "text-gray-400 bg-gray-50"
+                        )}>
+                            {formData.track_inventory ? `${formData.inventory_quantity || 0} Units In Stock` : 'Tracking Disabled'}
+                        </span>
+                    </div>
+                    {expandedSections.inventory ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                </button>
+
+                {expandedSections.inventory && (
+                    <div className="p-6 pt-0 space-y-6 border-t border-gray-50/50">
+                        <div className="mt-6 flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <div>
+                                <p className="text-xs font-bold text-gray-900">Track Inventory for this Product</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">Enable live stock quantity management and low stock alerts</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={formData.track_inventory}
+                                    onChange={(e) => setFormData({ ...formData, track_inventory: e.target.checked })}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                            </label>
+                        </div>
+
+                        {formData.track_inventory && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Opening Stock Quantity</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all font-mono"
+                                        value={formData.inventory_quantity}
+                                        onChange={(e) => setFormData({ ...formData, inventory_quantity: e.target.value })}
+                                        placeholder="0"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Starting units available in store</p>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Low Stock Alert Threshold</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        className="w-full px-5 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-4 focus:ring-blue-100 outline-none transition-all font-mono"
+                                        value={formData.low_stock_threshold}
+                                        onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
+                                        placeholder="5"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Triggers low stock alert when inventory reaches this level</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

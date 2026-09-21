@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/lib/axios";
-import { Plus, Edit, Trash2, Package, Search, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, Package, Search, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, Boxes } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -31,6 +31,25 @@ export default function ProductsPage() {
             console.error("Failed to fetch products", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleAddToInventory = async (product) => {
+        const qtyStr = prompt(`Add "${product.name}" to Inventory Management?\nEnter initial stock quantity:`, "10");
+        if (qtyStr === null) return;
+        const qty = parseInt(qtyStr) || 0;
+        try {
+            const res = await api.post("/inventory/import-from-catalog", {
+                product_ids: [product.id],
+                initial_quantity: qty
+            });
+            if (res.data.success) {
+                setProducts(products.map(p => p.id === product.id ? { ...p, track_inventory: true, inventory_quantity: qty } : p));
+                alert(`"${product.name}" is now tracked in Inventory with ${qty} units.`);
+            }
+        } catch (err) {
+            console.error("Failed to add to inventory", err);
+            alert(err.response?.data?.error || "Failed to add to inventory");
         }
     };
 
@@ -180,12 +199,17 @@ export default function ProductsPage() {
                                                 </div>
                                                 <div className="min-w-0">
                                                     <div className="text-sm font-bold text-gray-900 truncate">{product.name}</div>
-                                                    <div className="flex gap-1 mt-1">
+                                                    <div className="flex flex-wrap gap-1 mt-1">
                                                         {product.categories?.slice(0, 1).map((cat, i) => (
                                                             <span key={i} className="text-[9px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded uppercase tracking-tighter">
                                                                 {cat.name}
                                                             </span>
                                                         ))}
+                                                        {product.track_inventory ? (
+                                                            <span className="text-[9px] font-black bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200 uppercase tracking-tighter" title="Tracked in Inventory">
+                                                                📦 {product.inventory_quantity ?? 0} In Stock
+                                                            </span>
+                                                        ) : null}
                                                     </div>
                                                 </div>
                                             </div>
@@ -211,6 +235,15 @@ export default function ProductsPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                             <div className="flex justify-end gap-1">
+                                                {!product.track_inventory && (
+                                                    <button
+                                                        onClick={() => handleAddToInventory(product)}
+                                                        title="Add to Inventory"
+                                                        className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all border border-transparent hover:border-purple-100"
+                                                    >
+                                                        <Boxes className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                                 <Link href={`/dashboard/products/${product.id}/edit`} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-100">
                                                     <Edit className="w-4 h-4" />
                                                 </Link>
@@ -247,9 +280,19 @@ export default function ProductsPage() {
                                 </div>
                                 <div className="p-4 flex-1 flex flex-col">
                                     <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-1">{product.name}</h3>
+                                    {product.track_inventory && (
+                                        <span className="self-start text-[9px] font-black bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded border border-purple-200 uppercase tracking-tighter mb-2">
+                                            📦 {product.inventory_quantity ?? 0} In Stock
+                                        </span>
+                                    )}
                                     <div className="flex items-center justify-between mt-auto pt-4">
                                         <div className="font-black text-gray-900 text-lg">{formatPrice(parseFloat(product.price))}</div>
                                         <div className="flex gap-1">
+                                            {!product.track_inventory && (
+                                                <button onClick={() => handleAddToInventory(product)} title="Add to Inventory" className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-all">
+                                                    <Boxes className="w-4 h-4" />
+                                                </button>
+                                            )}
                                             <Link href={`/dashboard/products/${product.id}/edit`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all">
                                                 <Edit className="w-4 h-4" />
                                             </Link>
@@ -287,8 +330,18 @@ export default function ProductsPage() {
                                 )}>
                                     {product.status}
                                 </span>
+                                {product.track_inventory && (
+                                    <span className="text-[8px] font-black bg-purple-50 text-purple-700 px-1 py-0.5 rounded border border-purple-200 uppercase tracking-tighter">
+                                        📦 {product.inventory_quantity ?? 0}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex justify-end gap-2 mt-2">
+                                {!product.track_inventory && (
+                                    <button onClick={() => handleAddToInventory(product)} className="px-3 py-1.5 bg-purple-50 text-[10px] font-bold uppercase tracking-widest text-purple-700 rounded-lg border border-purple-100">
+                                        Track
+                                    </button>
+                                )}
                                 <Link href={`/dashboard/products/${product.id}/edit`} className="px-3 py-1.5 bg-gray-50 text-[10px] font-bold uppercase tracking-widest text-gray-600 rounded-lg border border-gray-100 hover:bg-white transition-all">
                                     Edit
                                 </Link>
